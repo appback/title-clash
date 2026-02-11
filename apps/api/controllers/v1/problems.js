@@ -196,6 +196,14 @@ async function update(req, res, next) {
       params
     )
 
+    // Trigger reward distribution when manually transitioning to 'closed'
+    if (state === 'closed' && problem.state === 'voting') {
+      const { distributeRewards } = require('../../services/rewardDistributor')
+      distributeRewards(id).catch(err => {
+        console.error(`[Problems] Failed to distribute rewards for problem ${id}:`, err)
+      })
+    }
+
     res.json(result.rows[0])
   } catch (err) {
     next(err)

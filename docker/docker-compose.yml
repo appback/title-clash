@@ -6,10 +6,21 @@ services:
     working_dir: /app
     environment:
       - TITLECLASH_DATABASE_URL=postgres://postgres:postgres@db:5432/titleclash
+      - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-me-in-prod}
+      - JWT_EXPIRES_IN=24h
+      - STORAGE_MODE=${STORAGE_MODE:-local}
+      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
+      - S3_BUCKET=${S3_BUCKET:-}
+      - S3_URL_PREFIX=${S3_URL_PREFIX:-}
+      - NODE_ENV=${NODE_ENV:-development}
     ports:
       - "3000:3000"
     depends_on:
       - db
+    volumes:
+      - api_uploads:/app/uploads
 
   db:
     image: postgres:15
@@ -24,4 +35,6 @@ services:
 
 volumes:
   titleclash_pgdata:
+    driver: local
+  api_uploads:
     driver: local

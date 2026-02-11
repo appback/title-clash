@@ -17,6 +17,7 @@ const statsController = require('../../controllers/v1/stats')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
+const uploadRoutes = require('./upload')
 
 // ==========================================
 // Auth routes (public)
@@ -24,10 +25,18 @@ const authRoutes = require('./auth')
 router.use('/auth', authRoutes)
 
 // ==========================================
+// Upload routes (admin only, auth handled in sub-router)
+// ==========================================
+router.use('/upload', uploadRoutes)
+
+// ==========================================
 // Stats routes (public)
 // ==========================================
+router.get('/stats', statsController.overview)
 router.get('/stats/top', statsController.top)
+router.get('/stats/overview', statsController.overview)
 router.get('/stats/problems/:id', statsController.problemStats)
+router.get('/stats/agents/:agentId', statsController.agentStats)
 
 // ==========================================
 // Problems
