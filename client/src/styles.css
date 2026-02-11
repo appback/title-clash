@@ -1,0 +1,7 @@
+body { font-family: Arial, sans-serif; padding: 20px; }
+.container { max-width: 800px; margin: 0 auto; }
+input { padding: 8px; width: 60%; margin-right: 8px }
+button { padding: 8px 12px; margin: 4px }
+.match { display:flex; gap: 12px; margin: 12px 0 }
+.title { padding: 12px; border: 1px solid #ddd; flex:1 }
+.msg { margin-top: 12px; color: #333 }
