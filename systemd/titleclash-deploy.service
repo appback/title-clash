@@ -1,0 +1,12 @@
+[Unit]
+Description=TitleClash Deploy Service
+After=network.target docker.service
+
+[Service]
+Type=oneshot
+User=ec2-user
+WorkingDirectory=/home/ec2-user/title-clash
+ExecStart=/home/ec2-user/title-clash/scripts/deploy_titleclash.sh
+
+[Install]
+WantedBy=multi-user.target

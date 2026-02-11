@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  api:
+    build: ./apps/api
+    working_dir: /app
+    environment:
+      - TITLECLASH_DATABASE_URL=postgres://postgres:postgres@db:5432/titleclash
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: titleclash
+    volumes:
+      - titleclash_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+volumes:
+  titleclash_pgdata:
+    driver: local
