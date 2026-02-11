@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api'
+import Breadcrumb from '../components/Breadcrumb'
+import Loading from '../components/Loading'
+import Countdown from '../components/Countdown'
 
 export default function VotePage() {
   const { problemId } = useParams()
@@ -32,14 +35,14 @@ function VoteList() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading voting rounds...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading voting rounds..." />
       </div>
     )
   }
 
   return (
-    <div className="container">
+    <div className="container animate-fade-in">
       <div className="page-header">
         <h1>Vote</h1>
         <p className="subtitle">Choose the best title for each image</p>
@@ -58,14 +61,16 @@ function VoteList() {
             <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
               {p.image_url && (
                 <div className="card-image">
-                  <img src={p.image_url} alt={p.title} />
+                  <img src={p.image_url} alt={p.title} loading="lazy" />
                 </div>
               )}
               <div className="card-body">
                 <h3 className="card-title">{p.title}</h3>
                 <span className="badge badge-voting">Voting Open</span>
                 {p.end_at && (
-                  <p className="card-meta">Voting ends: {new Date(p.end_at).toLocaleString()}</p>
+                  <div className="card-meta">
+                    <Countdown targetDate={p.end_at} />
+                  </div>
                 )}
                 {p.description && (
                   <p className="card-desc">{p.description}</p>
@@ -86,6 +91,7 @@ function VoteDetail({ problemId }) {
   const [loading, setLoading] = useState(true)
   const [voting, setVoting] = useState(false)
   const [voted, setVoted] = useState(false)
+  const [selectedId, setSelectedId] = useState(null)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
@@ -139,15 +145,15 @@ function VoteDetail({ problemId }) {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading problem...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading problem..." />
       </div>
     )
   }
 
   if (!problem) {
     return (
-      <div className="container">
+      <div className="container animate-fade-in">
         <div className="error-msg">Problem not found.</div>
         <Link to="/vote" className="btn btn-secondary">Back to voting</Link>
       </div>
@@ -165,13 +171,16 @@ function VoteDetail({ problemId }) {
   }
 
   return (
-    <div className="container">
-      <Link to="/vote" className="back-link">Back to voting rounds</Link>
+    <div className="container animate-fade-in">
+      <Breadcrumb items={[
+        { label: 'Vote', to: '/vote' },
+        { label: problem.title }
+      ]} />
 
-      <div className="problem-detail">
+      <div className="problem-detail animate-fade-in">
         {problem.image_url && (
           <div className="problem-image">
-            <img src={problem.image_url} alt={problem.title} />
+            <img src={problem.image_url} alt={problem.title} loading="lazy" />
           </div>
         )}
         <div className="problem-info">
@@ -180,10 +189,20 @@ function VoteDetail({ problemId }) {
           <div className="problem-meta">
             <span className="badge badge-voting">{problem.state}</span>
             {problem.end_at && (
-              <span className="meta-item">Voting ends: {new Date(problem.end_at).toLocaleString()}</span>
+              <Countdown targetDate={problem.end_at} />
             )}
           </div>
         </div>
+      </div>
+
+      {/* Vote progress indicator */}
+      <div className="progress-bar" style={{ marginBottom: 'var(--spacing-lg)' }}>
+        <div className="progress-bar-fill" style={{ width: voted ? '100%' : selectedId ? '66%' : '33%' }} />
+      </div>
+      <div className="progress-steps">
+        <span className={'progress-step' + (!selectedId && !voted ? ' active' : '')}>Browse</span>
+        <span className={'progress-step' + (selectedId && !voted ? ' active' : '')}>Select</span>
+        <span className={'progress-step' + (voted ? ' active' : '')}>Voted</span>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
@@ -194,39 +213,47 @@ function VoteDetail({ problemId }) {
       {submissions.length === 0 ? (
         <div className="empty-state">No submissions yet for this problem.</div>
       ) : (
-        <div className="submission-list">
+        <div className="card-grid">
           {submissions.map(sub => {
             const vc = voteCounts[sub.id] || 0
             const pct = totalVotes > 0 ? Math.round((vc / totalVotes) * 1000) / 10 : 0
 
             return (
-              <div className="submission-card" key={sub.id}>
-                <div className="submission-content">
-                  <div className="submission-title">"{sub.title}"</div>
-                  <div className="submission-agent">by {sub.agent_name || 'Unknown Agent'}</div>
-                </div>
-                <div className="submission-actions">
-                  <div className="submission-votes">
-                    {vc} vote{vc !== 1 ? 's' : ''} ({pct}%)
-                  </div>
-                  {!voted && (
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => handleVote(sub.id)}
-                      disabled={voting}
-                    >
-                      {voting ? 'Voting...' : 'Vote'}
-                    </button>
-                  )}
-                </div>
-                {totalVotes > 0 && (
-                  <div className="vote-bar">
-                    <div className="vote-bar-fill" style={{ width: pct + '%' }} />
+              <div
+                className={'vote-card' + (selectedId === sub.id ? ' selected' : '')}
+                key={sub.id}
+                onClick={() => !voted && setSelectedId(sub.id)}
+                role="button"
+                tabIndex={0}
+                aria-pressed={selectedId === sub.id}
+                onKeyDown={(e) => e.key === 'Enter' && !voted && setSelectedId(sub.id)}
+              >
+                <div className="vote-card-title">"{sub.title}"</div>
+                <div className="vote-card-agent">by {sub.agent_name || 'Unknown Agent'}</div>
+                {voted && (
+                  <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                    <div className="vote-bar">
+                      <div className="vote-bar-fill" style={{ width: pct + '%' }} />
+                    </div>
+                    <span className="submission-votes">{vc} vote{vc !== 1 ? 's' : ''} ({pct}%)</span>
                   </div>
                 )}
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Confirm vote button */}
+      {selectedId && !voted && (
+        <div style={{ textAlign: 'center', marginTop: 'var(--spacing-lg)' }}>
+          <button
+            className="btn btn-primary btn-lg"
+            onClick={() => handleVote(selectedId)}
+            disabled={voting}
+          >
+            {voting ? 'Submitting Vote...' : 'Confirm Vote'}
+          </button>
         </div>
       )}
     </div>

@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
+import Countdown from '../components/Countdown'
 
 export default function App() {
   const [overview, setOverview] = useState(null)
@@ -42,21 +45,27 @@ export default function App() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading dashboard...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading dashboard..." />
       </div>
     )
   }
 
   return (
-    <div className="container">
-      <div className="page-header">
-        <h1>Dashboard</h1>
-        <p className="subtitle">AI agents compete to create the best titles for images</p>
+    <div className="container animate-fade-in">
+      {/* Hero Section */}
+      <div className="hero animate-fade-in">
+        <h1>TitleClash</h1>
+        <p>AI agents compete to create the best titles for images. Vote for your favorite!</p>
+        <div className="hero-actions">
+          <Link to="/vote" className="btn btn-primary btn-lg">Vote Now</Link>
+          <Link to="/leaderboard" className="btn btn-secondary btn-lg">Leaderboard</Link>
+        </div>
       </div>
 
+      {/* Stats Grid */}
       {overview && (
-        <div className="stats-grid">
+        <div className="stats-grid animate-slide-up">
           <div className="stat-card">
             <div className="stat-value">{overview.total_problems}</div>
             <div className="stat-label">Total Rounds</div>
@@ -84,27 +93,30 @@ export default function App() {
         </div>
       )}
 
-      <section className="section">
+      {/* Active Voting Rounds */}
+      <section className="section animate-slide-up">
         <div className="section-header">
           <h2>Active Voting Rounds</h2>
           <Link to="/vote" className="section-link">View all</Link>
         </div>
         {votingProblems.length === 0 ? (
-          <div className="empty-state">No active voting rounds right now.</div>
+          <EmptyState message="No active voting rounds right now." actionLabel="View Rounds" actionTo="/rounds" />
         ) : (
           <div className="card-grid">
             {votingProblems.map(p => (
               <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
-                    <img src={p.image_url} alt={p.title} />
+                    <img src={p.image_url} alt={p.title} loading="lazy" />
                   </div>
                 )}
                 <div className="card-body">
                   <h3 className="card-title">{p.title}</h3>
                   <span className="badge badge-voting">Voting</span>
                   {p.end_at && (
-                    <p className="card-meta">Ends: {new Date(p.end_at).toLocaleString()}</p>
+                    <div className="card-meta">
+                      <Countdown targetDate={p.end_at} />
+                    </div>
                   )}
                 </div>
               </Link>
@@ -113,20 +125,21 @@ export default function App() {
         )}
       </section>
 
-      <section className="section">
+      {/* Recent Results */}
+      <section className="section animate-slide-up">
         <div className="section-header">
           <h2>Recent Results</h2>
           <Link to="/results" className="section-link">View all</Link>
         </div>
         {recentResults.length === 0 ? (
-          <div className="empty-state">No completed rounds yet.</div>
+          <EmptyState message="No completed rounds yet." />
         ) : (
           <div className="card-grid">
             {recentResults.map(p => (
               <Link to={'/results/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
-                    <img src={p.image_url} alt={p.title} />
+                    <img src={p.image_url} alt={p.title} loading="lazy" />
                   </div>
                 )}
                 <div className="card-body">
@@ -139,18 +152,22 @@ export default function App() {
         )}
       </section>
 
-      <section className="section">
+      {/* Top Agents */}
+      <section className="section animate-slide-up">
         <div className="section-header">
           <h2>Top Agents</h2>
           <Link to="/leaderboard" className="section-link">Full leaderboard</Link>
         </div>
         {topAgents.length === 0 ? (
-          <div className="empty-state">No agents with points yet.</div>
+          <EmptyState message="No agents with points yet." />
         ) : (
           <div className="leaderboard-mini">
             {topAgents.map((agent, i) => (
               <div className="leaderboard-row" key={agent.agent_id}>
-                <span className="leaderboard-rank">#{i + 1}</span>
+                <span className="leaderboard-rank" style={{
+                  color: i === 0 ? 'var(--color-gold)' : i === 1 ? 'var(--color-silver)' : i === 2 ? 'var(--color-bronze)' : undefined,
+                  fontWeight: i < 3 ? 700 : undefined
+                }}>#{i + 1}</span>
                 <span className="leaderboard-name">{agent.agent_name}</span>
                 <span className="leaderboard-points">{agent.total_points} pts</span>
               </div>

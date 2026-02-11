@@ -1,6 +1,11 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../api'
+import Podium from '../components/Podium'
+import BarChart from '../components/BarChart'
+import Breadcrumb from '../components/Breadcrumb'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 
 export default function ResultsPage() {
   const { problemId } = useParams()
@@ -53,14 +58,14 @@ function ResultList() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading results...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading results..." />
       </div>
     )
   }
 
   return (
-    <div className="container">
+    <div className="container animate-fade-in">
       <div className="page-header">
         <h1>Results</h1>
         <p className="subtitle">Completed rounds and their winners</p>
@@ -69,14 +74,14 @@ function ResultList() {
       {error && <div className="error-msg">{error}</div>}
 
       {problems.length === 0 ? (
-        <div className="empty-state">No completed rounds yet. Check back after some rounds finish.</div>
+        <EmptyState message="No completed rounds yet. Check back after some rounds finish." actionLabel="View Rounds" actionTo="/rounds" />
       ) : (
         <div className="card-grid">
           {problems.map(p => (
             <Link to={'/results/' + p.id} key={p.id} className="card card-clickable">
               {p.image_url && (
                 <div className="card-image">
-                  <img src={p.image_url} alt={p.title} />
+                  <img src={p.image_url} alt={p.title} loading="lazy" />
                 </div>
               )}
               <div className="card-body">
@@ -117,15 +122,15 @@ function ResultDetail({ problemId }) {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading results...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading results..." />
       </div>
     )
   }
 
   if (error || !stats) {
     return (
-      <div className="container">
+      <div className="container animate-fade-in">
         <div className="error-msg">{error || 'Results not found.'}</div>
         <Link to="/results" className="btn btn-secondary">Back to results</Link>
       </div>
@@ -135,13 +140,16 @@ function ResultDetail({ problemId }) {
   const { problem, submission_count, vote_count, agent_count, top_submissions, rewards, timeline } = stats
 
   return (
-    <div className="container">
-      <Link to="/results" className="back-link">Back to results</Link>
+    <div className="container animate-fade-in">
+      <Breadcrumb items={[
+        { label: 'Results', to: '/results' },
+        { label: problem.title }
+      ]} />
 
-      <div className="problem-detail">
+      <div className="problem-detail animate-fade-in">
         {problem.image_url && (
           <div className="problem-image">
-            <img src={problem.image_url} alt={problem.title} />
+            <img src={problem.image_url} alt={problem.title} loading="lazy" />
           </div>
         )}
         <div className="problem-info">
@@ -155,7 +163,7 @@ function ResultDetail({ problemId }) {
         </div>
       </div>
 
-      <div className="stats-grid stats-grid-3">
+      <div className="stats-grid stats-grid-3 animate-slide-up">
         <div className="stat-card">
           <div className="stat-value">{submission_count}</div>
           <div className="stat-label">Submissions</div>
@@ -170,8 +178,33 @@ function ResultDetail({ problemId }) {
         </div>
       </div>
 
+      {/* Winner Podium */}
+      {rewards && rewards.length > 0 && (
+        <section className="section animate-slide-up">
+          <h2 className="section-title">Winners</h2>
+          <Podium winners={rewards.map(r => ({
+            title: r.submission_title,
+            agent: r.agent_name,
+            votes: r.vote_count,
+            points: r.points
+          }))} />
+        </section>
+      )}
+
+      {/* Vote Distribution Chart */}
+      {top_submissions && top_submissions.length > 0 && (
+        <section className="section animate-slide-up">
+          <h2 className="section-title">Vote Distribution</h2>
+          <BarChart data={top_submissions.map((sub, i) => ({
+            label: sub.title,
+            value: sub.vote_count,
+            rank: i + 1
+          }))} />
+        </section>
+      )}
+
       {timeline && (timeline.start_at || timeline.end_at) && (
-        <section className="section">
+        <section className="section animate-slide-up">
           <h2 className="section-title">Timeline</h2>
           <div className="timeline-info">
             {timeline.start_at && (
@@ -197,13 +230,13 @@ function ResultDetail({ problemId }) {
       )}
 
       {rewards && rewards.length > 0 && (
-        <section className="section">
+        <section className="section animate-slide-up">
           <h2 className="section-title">Rewards</h2>
           <div className="rewards-list">
             {rewards.map((r, i) => (
               <div className={'reward-card rank-' + r.rank} key={i}>
                 <div className="reward-rank">
-                  {r.rank === 1 ? '1st' : r.rank === 2 ? '2nd' : r.rank + 'rd'}
+                  {r.rank === 1 ? '1st' : r.rank === 2 ? '2nd' : r.rank === 3 ? '3rd' : r.rank + 'th'}
                 </div>
                 <div className="reward-info">
                   <div className="reward-title">"{r.submission_title}"</div>
@@ -217,10 +250,10 @@ function ResultDetail({ problemId }) {
         </section>
       )}
 
-      <section className="section">
+      <section className="section animate-slide-up">
         <h2 className="section-title">All Submissions</h2>
         {top_submissions.length === 0 ? (
-          <div className="empty-state">No submissions for this problem.</div>
+          <EmptyState message="No submissions for this problem." />
         ) : (
           <div className="submission-list">
             {top_submissions.map((sub, i) => (

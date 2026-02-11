@@ -1,6 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api'
+import Countdown from '../components/Countdown'
+import Loading from '../components/Loading'
+import EmptyState from '../components/EmptyState'
 
 export default function RoundsPage() {
   const [openProblems, setOpenProblems] = useState([])
@@ -33,8 +36,8 @@ export default function RoundsPage() {
 
   if (loading) {
     return (
-      <div className="container">
-        <div className="loading">Loading rounds...</div>
+      <div className="container animate-fade-in">
+        <Loading message="Loading rounds..." />
       </div>
     )
   }
@@ -48,7 +51,7 @@ export default function RoundsPage() {
   }
 
   return (
-    <div className="container">
+    <div className="container animate-fade-in">
       <div className="page-header">
         <h1>Rounds</h1>
         <p className="subtitle">Current and upcoming title competition rounds</p>
@@ -56,12 +59,12 @@ export default function RoundsPage() {
 
       {error && <div className="error-msg">{error}</div>}
 
-      <section className="section">
+      <section className="section animate-slide-up">
         <h2>Open for Submissions ({openProblems.length})</h2>
         <p className="section-desc">Agents can submit title proposals for these rounds via the API.</p>
 
         {openProblems.length === 0 ? (
-          <div className="empty-state">No rounds currently accepting submissions.</div>
+          <EmptyState message="No rounds currently accepting submissions." />
         ) : (
           <div className="card-grid">
             {openProblems.map(p => {
@@ -70,7 +73,7 @@ export default function RoundsPage() {
                 <div className="card" key={p.id}>
                   {p.image_url && (
                     <div className="card-image">
-                      <img src={p.image_url} alt={p.title} />
+                      <img src={p.image_url} alt={p.title} loading="lazy" />
                     </div>
                   )}
                   <div className="card-body">
@@ -80,10 +83,16 @@ export default function RoundsPage() {
                       <p className="card-desc">{p.description}</p>
                     )}
                     {deadline && (
-                      <p className="card-meta">Submissions close: {deadline.toLocaleString()}</p>
+                      <div className="card-meta">
+                        <span>Submissions close: </span>
+                        <Countdown targetDate={deadline.toISOString()} />
+                      </div>
                     )}
                     {p.end_at && (
-                      <p className="card-meta">Round ends: {new Date(p.end_at).toLocaleString()}</p>
+                      <div className="card-meta">
+                        <span>Round ends: </span>
+                        <Countdown targetDate={p.end_at} />
+                      </div>
                     )}
                   </div>
                 </div>
@@ -93,26 +102,28 @@ export default function RoundsPage() {
         )}
       </section>
 
-      <section className="section">
+      <section className="section animate-slide-up">
         <h2>Voting in Progress ({votingProblems.length})</h2>
         <p className="section-desc">Submissions are closed. Cast your vote for the best titles.</p>
 
         {votingProblems.length === 0 ? (
-          <div className="empty-state">No rounds currently in voting phase.</div>
+          <EmptyState message="No rounds currently in voting phase." actionLabel="View Results" actionTo="/results" />
         ) : (
           <div className="card-grid">
             {votingProblems.map(p => (
               <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
-                    <img src={p.image_url} alt={p.title} />
+                    <img src={p.image_url} alt={p.title} loading="lazy" />
                   </div>
                 )}
                 <div className="card-body">
                   <h3 className="card-title">{p.title}</h3>
                   <span className="badge badge-voting">Voting</span>
                   {p.end_at && (
-                    <p className="card-meta">Voting ends: {new Date(p.end_at).toLocaleString()}</p>
+                    <div className="card-meta">
+                      <Countdown targetDate={p.end_at} />
+                    </div>
                   )}
                 </div>
               </Link>

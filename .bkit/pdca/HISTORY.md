@@ -3,14 +3,14 @@
 ## 프로젝트 정보
 - 프로젝트: title-clash (AI 제목 대결 플랫폼)
 - PDCA 시작일: 2026-02-11
-- 현재 Sprint: Sprint 4 (테스트 & 보안)
+- 현재 Sprint: Sprint 5 (UI/UX 개선)
 
 ## PDCA 에이전트 체제
 | 에이전트 | 역할 | 상태 |
 |---------|------|------|
-| Plan (계획) | 상세 설계 및 구현 계획 수립 | ✅ Sprint 4 완료 |
-| Do (개발) | 코드 구현 | ✅ Sprint 4 완료 |
-| Check (검증) | 설계-구현 갭 분석, 품질 검증 | ⏳ 대기 |
+| Plan (계획) | 상세 설계 및 구현 계획 수립 | ✅ Sprint 5 완료 |
+| Do (개발) | 코드 구현 | ✅ Sprint 5 완료 |
+| Check (검증) | 설계-구현 갭 분석, 품질 검증 | 🔄 진행중 |
 | History (히스토리) | 작업 내역 기록, 변경 로그 관리 | 🔄 진행중 |
 
 ## 작업 로그
@@ -138,6 +138,60 @@
 
 ---
 
+#### [Plan] Sprint 5 시작
+- 범위: 디자인 시스템 도입, 투표 페이지 리디자인, 결과 페이지 개선, 관리자 대시보드 기본 구현
+- 목표: 사용자 경험 개선 및 관리 인터페이스 확장
+- 상태: Plan 에이전트 실행 중
+- 예상 산출물:
+  - 일관된 컴포넌트 라이브러리 및 스타일 시스템
+  - 개선된 투표 UX/UI
+  - 향상된 결과 시각화
+  - 기본 관리자 대시보드 (라운드 관리, 에이전트 관리, 통계 모니터링)
+
+#### [Do] Sprint 5 Do 단계 완료 - UI/UX 개선 전체 구현
+- **Phase A: CSS 디자인 시스템 강화**
+  - 다크 테마 (--dark 시리즈 색상 변수)
+  - 애니메이션 프레임 6개 (fadeIn, slideDown, spin, pulse, bounce, shimmer)
+  - 신규 컴포넌트 CSS 클래스 15개+ (input, modal, toast, hero, podium, bar-chart, countdown, progress, vote-card, filter, tabs, table, hamburger, footer, breadcrumb)
+  - 반응형 브레이크포인트 확장 (1024px, 768px, 480px)
+
+- **Phase B: React 컴포넌트 신규 구현 (10개)**
+  - Loading.jsx - 로딩 스피너
+  - EmptyState.jsx - 빈 상태 안내
+  - Modal.jsx - 모달 컴포넌트
+  - Toast context + useToast hook - 알림 시스템
+  - Countdown.jsx - 카운트다운 타이머
+  - BarChart.jsx - 막대 그래프 (투표 결과 시각화)
+  - Podium.jsx - 우승자 표시 (1,2,3위)
+  - Breadcrumb.jsx - 네비게이션 경로
+  - Footer.jsx - 푸터 컴포넌트
+  - ThemeToggle.jsx - 다크/라이트 테마 토글
+
+- **Phase C: 페이지 전면 리디자인**
+  - Nav.jsx 개선: 햄버거 메뉴 + 테마 토글 + 활성 경로 하이라이트
+  - App.jsx (대시보드): 히어로 섹션 추가
+  - VotePage.jsx: Select-then-confirm 투표 플로우 (문제 선택 → 옵션 선택 → 투표 확인)
+  - RoundsPage.jsx: 카운트다운 타이머 표시
+  - ResultsPage.jsx: Podium + BarChart로 결과 시각화
+  - LeaderboardPage.jsx: 검색 + 순위별 색상 구분
+
+- **Phase D: 관리자 페이지 구현**
+  - AdminPage.jsx: 탭 UI (Problems CRUD, Agents list, Overview stats)
+
+- **Phase E: 통합 및 최적화**
+  - ToastProvider로 전역 알림 시스템 감싸기
+  - Footer 전역 배치
+  - admin 라우트 추가
+  - 테마 초기화 로직 (localStorage에서 사용자 선호도 복원)
+  - 이미지 lazy loading
+
+- 신규 파일: 11개 (컴포넌트 10 + 스타일 1)
+- 수정 파일: 7개 (App, Nav, VotePage, RoundsPage, ResultsPage, LeaderboardPage, main.jsx)
+- npm 패키지 추가 사항: 없음 (기존 React + CSS 스타일시트)
+- 백엔드 변경: 없음 (프론트엔드 전용 작업)
+
+---
+
 ## 변경 이력 (Changelog)
 | 날짜 | 유형 | 설명 | 관련 파일 |
 |------|------|------|-----------|
@@ -201,6 +255,26 @@
 | 2026-02-11 | 테스트 | votes 통합 테스트 (10개) | tests/integration/votes.test.js |
 | 2026-02-11 | 테스트 | upload 통합 테스트 (8개) | tests/integration/upload.test.js |
 | 2026-02-11 | CI | GitHub Actions 워크플로우 재작성 (PostgreSQL 서비스 컨테이너) | .github/workflows/ci.yml |
+| 2026-02-11 | 문서 | Sprint 5 PDCA 시작 | DESIGN-sprint5.md |
+| 2026-02-11 | 스타일 | CSS 디자인 시스템 강화 (다크 테마, 애니메이션, 컴포넌트 클래스) | styles.css |
+| 2026-02-11 | 컴포넌트 | Loading 스피너 | src/components/Loading.jsx |
+| 2026-02-11 | 컴포넌트 | EmptyState 표시 | src/components/EmptyState.jsx |
+| 2026-02-11 | 컴포넌트 | Modal 컴포넌트 | src/components/Modal.jsx |
+| 2026-02-11 | 컴포넌트 | Toast 알림 시스템 (context + hook) | src/components/Toast.jsx, src/hooks/useToast.js |
+| 2026-02-11 | 컴포넌트 | Countdown 타이머 | src/components/Countdown.jsx |
+| 2026-02-11 | 컴포넌트 | BarChart 그래프 | src/components/BarChart.jsx |
+| 2026-02-11 | 컴포넌트 | Podium 우승자 표시 | src/components/Podium.jsx |
+| 2026-02-11 | 컴포넌트 | Breadcrumb 경로 네비게이션 | src/components/Breadcrumb.jsx |
+| 2026-02-11 | 컴포넌트 | Footer 컴포넌트 | src/components/Footer.jsx |
+| 2026-02-11 | 컴포넌트 | ThemeToggle 다크/라이트 테마 | src/components/ThemeToggle.jsx |
+| 2026-02-11 | 수정 | Nav.jsx 개선 (햄버거, 테마 토글, 활성 경로) | src/components/Nav.jsx |
+| 2026-02-11 | 수정 | App.jsx 대시보드 (히어로 섹션) | src/App.jsx |
+| 2026-02-11 | 수정 | VotePage.jsx 리디자인 (Select-then-confirm 플로우) | src/pages/VotePage.jsx |
+| 2026-02-11 | 수정 | RoundsPage.jsx (Countdown 추가) | src/pages/RoundsPage.jsx |
+| 2026-02-11 | 수정 | ResultsPage.jsx (Podium + BarChart) | src/pages/ResultsPage.jsx |
+| 2026-02-11 | 수정 | LeaderboardPage.jsx (검색 + 색상) | src/pages/LeaderboardPage.jsx |
+| 2026-02-11 | 페이지 | AdminPage 관리자 대시보드 | src/pages/AdminPage.jsx |
+| 2026-02-11 | 수정 | main.jsx ToastProvider 통합 + 테마 초기화 | src/main.jsx |
 
 ## 의사결정 로그
 | 날짜 | 결정 | 이유 | 대안 |
