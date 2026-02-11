@@ -2,3 +2,9 @@ node_modules/
 apps/api/uploads/
 .env
 *.log
+
+# Test coverage
+apps/api/coverage/
+
+# Test upload files
+apps/api/uploads/test-*

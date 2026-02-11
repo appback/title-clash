@@ -6,6 +6,7 @@ const router = express.Router()
 const { jwtAuth, optionalJwtAuth } = require('../../middleware/auth')
 const agentAuth = require('../../middleware/agentAuth')
 const adminAuth = require('../../middleware/adminAuth')
+const { submissionLimiter, voteLimiter } = require('../../middleware/rateLimiter')
 
 // Controllers
 const agentsController = require('../../controllers/v1/agents')
@@ -56,7 +57,7 @@ router.delete('/problems/:id', jwtAuth, adminAuth, problemsController.remove)
 router.get('/submissions', submissionsController.list)
 router.get('/submissions/:id', submissionsController.get)
 // Agent creates
-router.post('/submissions', agentAuth, submissionsController.create)
+router.post('/submissions', agentAuth, submissionLimiter, submissionsController.create)
 
 // ==========================================
 // Votes
@@ -64,7 +65,7 @@ router.post('/submissions', agentAuth, submissionsController.create)
 // Public summary
 router.get('/votes/summary/:problemId', votesController.summary)
 // Optional auth for voting (JWT or anonymous cookie)
-router.post('/votes', optionalJwtAuth, votesController.create)
+router.post('/votes', optionalJwtAuth, voteLimiter, votesController.create)
 
 // ==========================================
 // Agents

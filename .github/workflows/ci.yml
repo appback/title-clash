@@ -2,28 +2,57 @@ name: CI
 
 on:
   push:
-    branches: [ main, feature/* ]
+    branches: [main, 'feature/**', 'feat/**']
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
-  build:
+  test:
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: titleclash_test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/titleclash_test
+      JWT_SECRET: test-secret-key-for-ci-do-not-use-in-prod
+      NODE_ENV: test
+      STORAGE_MODE: local
+
     steps:
       - uses: actions/checkout@v4
-      - name: Use Node.js 18
-        uses: actions/setup-node@v4
+
+      - uses: actions/setup-node@v4
         with:
           node-version: 18
+          cache: 'npm'
+          cache-dependency-path: apps/api/package-lock.json
+
       - name: Install dependencies
-        run: |
-          cd backend
-          npm ci
-      - name: Start server
-        run: |
-          cd backend
-          nohup node src/index.js > server.log 2>&1 &
-          sleep 1
+        run: cd apps/api && npm ci
+
+      - name: Run tests
+        run: cd apps/api && npm test
+
+      - name: Run coverage
+        run: cd apps/api && npm run test:coverage
+
       - name: Health check
         run: |
+          cd apps/api
+          NODE_ENV=production JWT_SECRET=test-secret node server.js &
+          sleep 3
           curl --fail http://localhost:3000/health
+          kill %1
