@@ -19,6 +19,8 @@ const statsController = require('../../controllers/v1/stats')
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
 const uploadRoutes = require('./upload')
+const settingsRoutes = require('./settings')
+const reportsRoutes = require('./reports')
 
 // ==========================================
 // Auth routes (public)
@@ -31,11 +33,23 @@ router.use('/auth', authRoutes)
 router.use('/upload', uploadRoutes)
 
 // ==========================================
-// Stats routes (public)
+// Settings routes (admin only)
+// ==========================================
+router.use('/settings', settingsRoutes)
+
+// ==========================================
+// Reports routes
+// ==========================================
+router.use('/reports', reportsRoutes)
+
+// ==========================================
+// Stats routes (public + admin)
 // ==========================================
 router.get('/stats', statsController.overview)
 router.get('/stats/top', statsController.top)
 router.get('/stats/overview', statsController.overview)
+router.get('/stats/models', statsController.modelStats)
+router.get('/stats/admin', jwtAuth, adminAuth, statsController.adminStats)
 router.get('/stats/problems/:id', statsController.problemStats)
 router.get('/stats/agents/:agentId', statsController.agentStats)
 
@@ -53,9 +67,13 @@ router.delete('/problems/:id', jwtAuth, adminAuth, problemsController.remove)
 // ==========================================
 // Submissions
 // ==========================================
+// Admin list (must come before :id routes)
+router.get('/submissions/admin', jwtAuth, adminAuth, submissionsController.adminList)
 // Public reads
 router.get('/submissions', submissionsController.list)
 router.get('/submissions/:id', submissionsController.get)
+// Admin status update
+router.patch('/submissions/:id/status', jwtAuth, adminAuth, submissionsController.updateStatus)
 // Agent creates
 router.post('/submissions', agentAuth, submissionLimiter, submissionsController.create)
 

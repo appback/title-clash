@@ -3,13 +3,29 @@ const { S3Client, PutObjectCommand } = require('@aws-sdk/client-s3')
 const fs = require('fs')
 const path = require('path')
 const { v4: uuidv4 } = require('uuid')
+const configManager = require('./configManager')
 
-const STORAGE_MODE = process.env.STORAGE_MODE || 's3'
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads')
 
 let s3Client = null
-if (STORAGE_MODE === 's3') {
-  s3Client = new S3Client({ region: process.env.AWS_REGION || 'ap-northeast-2' })
+
+function getStorageMode() {
+  return configManager.getString('storage_mode', '') || process.env.STORAGE_MODE || 's3'
+}
+
+function getS3Client() {
+  const region = configManager.getString('s3_region', '') || process.env.AWS_REGION || 'ap-northeast-2'
+  if (!s3Client) {
+    s3Client = new S3Client({ region })
+  }
+  return s3Client
+}
+
+/**
+ * Reset S3 client (called after config refresh to pick up new settings).
+ */
+function resetS3Client() {
+  s3Client = null
 }
 
 /**
@@ -21,15 +37,19 @@ if (STORAGE_MODE === 's3') {
  */
 async function uploadImage(buffer, ext, contentType) {
   const key = `images/${uuidv4()}${ext}`
+  const mode = getStorageMode()
 
-  if (STORAGE_MODE === 's3') {
-    await s3Client.send(new PutObjectCommand({
-      Bucket: process.env.S3_BUCKET,
+  if (mode === 's3') {
+    const bucket = configManager.getString('s3_bucket', '') || process.env.S3_BUCKET
+    const urlPrefix = configManager.getString('s3_url_prefix', '') || process.env.S3_URL_PREFIX
+
+    await getS3Client().send(new PutObjectCommand({
+      Bucket: bucket,
       Key: key,
       Body: buffer,
       ContentType: contentType
     }))
-    const url = `${process.env.S3_URL_PREFIX}/${key}`
+    const url = `${urlPrefix}/${key}`
     return { url, key }
   } else {
     // Local mode
@@ -44,4 +64,4 @@ async function uploadImage(buffer, ext, contentType) {
   }
 }
 
-module.exports = { uploadImage }
+module.exports = { uploadImage, resetS3Client }

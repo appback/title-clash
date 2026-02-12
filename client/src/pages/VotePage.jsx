@@ -4,6 +4,7 @@ import api from '../api'
 import Breadcrumb from '../components/Breadcrumb'
 import Loading from '../components/Loading'
 import Countdown from '../components/Countdown'
+import ReportModal from '../components/ReportModal'
 
 export default function VotePage() {
   const { problemId } = useParams()
@@ -94,6 +95,7 @@ function VoteDetail({ problemId }) {
   const [selectedId, setSelectedId] = useState(null)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
+  const [reportTarget, setReportTarget] = useState(null)
 
   async function fetchData() {
     try {
@@ -107,7 +109,7 @@ function VoteDetail({ problemId }) {
         setProblem(problemRes.value.data)
       }
       if (submissionsRes.status === 'fulfilled') {
-        const subs = submissionsRes.value.data.submissions || submissionsRes.value.data || []
+        const subs = submissionsRes.value.data.submissions || submissionsRes.value.data.data || submissionsRes.value.data || []
         setSubmissions(subs)
       }
       if (summaryRes.status === 'fulfilled') {
@@ -217,18 +219,22 @@ function VoteDetail({ problemId }) {
           {submissions.map(sub => {
             const vc = voteCounts[sub.id] || 0
             const pct = totalVotes > 0 ? Math.round((vc / totalVotes) * 1000) / 10 : 0
+            const isRestricted = sub.status === 'restricted'
 
             return (
               <div
-                className={'vote-card' + (selectedId === sub.id ? ' selected' : '')}
+                className={'vote-card' + (selectedId === sub.id ? ' selected' : '') + (isRestricted ? ' vote-card-restricted' : '')}
                 key={sub.id}
-                onClick={() => !voted && setSelectedId(sub.id)}
+                onClick={() => !voted && !isRestricted && setSelectedId(sub.id)}
                 role="button"
                 tabIndex={0}
                 aria-pressed={selectedId === sub.id}
-                onKeyDown={(e) => e.key === 'Enter' && !voted && setSelectedId(sub.id)}
+                onKeyDown={(e) => e.key === 'Enter' && !voted && !isRestricted && setSelectedId(sub.id)}
               >
-                <div className="vote-card-title">"{sub.title}"</div>
+                <div className="vote-card-title">
+                  "{sub.title}"
+                  {isRestricted && <span className="badge badge-restricted" style={{ marginLeft: 'var(--spacing-sm)' }}>Restricted</span>}
+                </div>
                 <div className="vote-card-agent">by {sub.agent_name || 'Unknown Agent'}</div>
                 {voted && (
                   <div style={{ marginTop: 'var(--spacing-sm)' }}>
@@ -238,6 +244,13 @@ function VoteDetail({ problemId }) {
                     <span className="submission-votes">{vc} vote{vc !== 1 ? 's' : ''} ({pct}%)</span>
                   </div>
                 )}
+                <button
+                  className="btn btn-ghost btn-sm report-btn"
+                  onClick={(e) => { e.stopPropagation(); setReportTarget(sub) }}
+                  title="Report this submission"
+                >
+                  Report
+                </button>
               </div>
             )
           })}
@@ -256,6 +269,14 @@ function VoteDetail({ problemId }) {
           </button>
         </div>
       )}
+
+      {/* Report Modal */}
+      <ReportModal
+        open={!!reportTarget}
+        onClose={() => setReportTarget(null)}
+        submissionId={reportTarget?.id}
+        submissionTitle={reportTarget?.title}
+      />
     </div>
   )
 }

@@ -13,6 +13,7 @@ const v1Routes = require('./routes/v1')
 const auth = require('./middleware/auth')
 const errorHandler = require('./middleware/errorHandler')
 const { startScheduler } = require('./services/scheduler')
+const { loadSettings } = require('./services/configManager')
 
 const app = express()
 
@@ -56,10 +57,20 @@ const port = process.env.PORT || 3000
 
 // Only listen when not in test mode (supertest manages the server in tests)
 if (process.env.NODE_ENV !== 'test') {
-  app.listen(port, () => {
-    console.log('TitleClash API listening on', port)
-    startScheduler()
-  })
+  loadSettings()
+    .then(() => {
+      app.listen(port, () => {
+        console.log('TitleClash API listening on', port)
+        startScheduler()
+      })
+    })
+    .catch(err => {
+      console.error('[ConfigManager] Failed to load settings, starting with defaults:', err.message)
+      app.listen(port, () => {
+        console.log('TitleClash API listening on', port)
+        startScheduler()
+      })
+    })
 }
 
 module.exports = app

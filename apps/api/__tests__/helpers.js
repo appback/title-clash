@@ -126,11 +126,13 @@ async function createTestSubmission(problemId, agentId, overrides = {}) {
  * Deletes in foreign-key-safe order.
  */
 async function cleanDatabase() {
+  await db.query('DELETE FROM reports');
   await db.query('DELETE FROM rewards');
   await db.query('DELETE FROM votes');
   await db.query('DELETE FROM submissions');
   await db.query('DELETE FROM problems');
   await db.query('DELETE FROM agents');
+  await db.query('DELETE FROM settings');
   await db.query('DELETE FROM users');
 }
 

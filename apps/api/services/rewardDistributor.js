@@ -1,11 +1,14 @@
 // rewardDistributor.js - Automatic reward distribution when a round closes
 const db = require('../db')
+const configManager = require('./configManager')
 
-const REWARD_POINTS = [
-  { rank: 1, points: 100, reason: 'round_winner' },
-  { rank: 2, points: 50, reason: 'runner_up' },
-  { rank: 3, points: 25, reason: 'runner_up' }
-]
+function getRewardPoints() {
+  return [
+    { rank: 1, points: configManager.getNumber('reward_1st', 100), reason: 'round_winner' },
+    { rank: 2, points: configManager.getNumber('reward_2nd', 50), reason: 'runner_up' },
+    { rank: 3, points: configManager.getNumber('reward_3rd', 25), reason: 'runner_up' }
+  ]
+}
 
 /**
  * Distribute rewards for a specific problem.
@@ -53,9 +56,10 @@ async function distributeRewards(problemId) {
   try {
     await client.query('BEGIN')
 
-    for (let i = 0; i < Math.min(voteResult.rows.length, REWARD_POINTS.length); i++) {
+    const rewardPoints = getRewardPoints()
+    for (let i = 0; i < Math.min(voteResult.rows.length, rewardPoints.length); i++) {
       const submission = voteResult.rows[i]
-      const reward = REWARD_POINTS[i]
+      const reward = rewardPoints[i]
 
       // Insert into rewards table
       const rewardResult = await client.query(
@@ -91,4 +95,4 @@ async function distributeRewards(problemId) {
   return distributed
 }
 
-module.exports = { distributeRewards, REWARD_POINTS }
+module.exports = { distributeRewards, getRewardPoints }

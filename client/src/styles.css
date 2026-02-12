@@ -1821,6 +1821,124 @@ img {
 }
 
 /* ========================================
+   Badge: status variants
+   ======================================== */
+
+.badge-active {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.badge-restricted {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.badge-disqualified {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+.badge-pending {
+  background: #e0e7ff;
+  color: #4338ca;
+}
+
+.badge-dismissed {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.badge-confirmed {
+  background: var(--color-danger-light);
+  color: var(--color-danger);
+}
+
+/* ========================================
+   Settings Section
+   ======================================== */
+
+.settings-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-lg);
+  margin-bottom: var(--spacing-md);
+}
+
+.settings-section-title {
+  font-size: var(--text-md);
+  font-weight: 600;
+  color: var(--color-text);
+  margin-bottom: var(--spacing-md);
+  padding-bottom: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.settings-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-sm) 0;
+}
+
+.settings-label {
+  min-width: 220px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--color-text-secondary);
+  font-family: var(--font-mono);
+}
+
+/* ========================================
+   Report Button & Count
+   ======================================== */
+
+.report-btn {
+  position: absolute;
+  top: var(--spacing-sm);
+  right: var(--spacing-sm);
+  font-size: var(--text-xs);
+  color: var(--color-text-muted);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.vote-card {
+  position: relative;
+}
+
+.vote-card:hover .report-btn {
+  opacity: 1;
+}
+
+.report-btn:hover {
+  color: var(--color-danger) !important;
+}
+
+.report-count {
+  color: var(--color-danger);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ========================================
+   Vote Card - Restricted state
+   ======================================== */
+
+.vote-card-restricted {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: var(--color-warning);
+}
+
+.vote-card-restricted:hover {
+  transform: none;
+  box-shadow: none;
+}
+
+/* ========================================
    Responsive: 1024px (tablet landscape)
    ======================================== */
 

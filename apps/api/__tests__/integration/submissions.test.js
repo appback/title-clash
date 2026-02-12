@@ -24,7 +24,7 @@ describe('Submissions API', () => {
   // POST /api/v1/submissions
   // =============================================
   describe('POST /api/v1/submissions', () => {
-    it('should create a submission with valid agent token to open problem (201)', async () => {
+    it('should create a submission with valid agent token and model_name (201)', async () => {
       const admin = await createAdminUser();
       const owner = await createAgentOwner();
       const agent = await createTestAgent(owner.id);
@@ -35,15 +35,56 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: 'My Creative Title'
+          title: 'My Creative Title',
+          model_name: 'gpt-4',
+          model_version: '0613'
         });
 
       expect(res.status).toBe(201);
       expect(res.body).toHaveProperty('id');
       expect(res.body.title).toBe('My Creative Title');
-      expect(res.body.problem_id).toBe(problem.id);
-      expect(res.body.agent_id).toBe(agent.id);
+      expect(res.body.model_name).toBe('gpt-4');
+      expect(res.body.model_version).toBe('0613');
       expect(res.body.status).toBe('active');
+    });
+
+    it('should reject submission without model_name (400)', async () => {
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+
+      const res = await request(app)
+        .post('/api/v1/submissions')
+        .set('Authorization', `Bearer ${agent.rawToken}`)
+        .send({
+          problem_id: problem.id,
+          title: 'No Model Name'
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+      expect(res.body.message).toContain('model_name');
+    });
+
+    it('should allow submission without model_version (201)', async () => {
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+
+      const res = await request(app)
+        .post('/api/v1/submissions')
+        .set('Authorization', `Bearer ${agent.rawToken}`)
+        .send({
+          problem_id: problem.id,
+          title: 'Optional Version',
+          model_name: 'claude-3'
+        });
+
+      expect(res.status).toBe(201);
+      expect(res.body.model_name).toBe('claude-3');
+      expect(res.body.model_version).toBeNull();
     });
 
     it('should reject submission with JWT token instead of agent token (401)', async () => {
@@ -55,7 +96,8 @@ describe('Submissions API', () => {
         .set('Authorization', authHeader(admin.token))
         .send({
           problem_id: problem.id,
-          title: 'JWT Submission'
+          title: 'JWT Submission',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(401);
@@ -69,7 +111,8 @@ describe('Submissions API', () => {
         .post('/api/v1/submissions')
         .send({
           problem_id: problem.id,
-          title: 'No Auth Submission'
+          title: 'No Auth Submission',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(401);
@@ -86,7 +129,8 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: 'Draft Problem Submission'
+          title: 'Draft Problem Submission',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(422);
@@ -105,7 +149,8 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: 'Duplicate Title'
+          title: 'Duplicate Title',
+          model_name: 'test'
         });
 
       // Second submission with same title
@@ -114,7 +159,8 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: 'Duplicate Title'
+          title: 'Duplicate Title',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(409);
@@ -137,7 +183,8 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: 'Inactive Agent Submission'
+          title: 'Inactive Agent Submission',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(403);
@@ -152,7 +199,8 @@ describe('Submissions API', () => {
         .set('Authorization', 'Bearer tc_agent_invalidtoken12345')
         .send({
           problem_id: problem.id,
-          title: 'Bad Token Submission'
+          title: 'Bad Token Submission',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(401);
@@ -166,7 +214,8 @@ describe('Submissions API', () => {
         .post('/api/v1/submissions')
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
-          title: 'No Problem ID'
+          title: 'No Problem ID',
+          model_name: 'test'
         });
 
       expect(res.status).toBe(400);
@@ -183,7 +232,8 @@ describe('Submissions API', () => {
         .post('/api/v1/submissions')
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
-          problem_id: problem.id
+          problem_id: problem.id,
+          model_name: 'test'
         });
 
       expect(res.status).toBe(400);
@@ -203,7 +253,8 @@ describe('Submissions API', () => {
         .set('Authorization', `Bearer ${agent.rawToken}`)
         .send({
           problem_id: problem.id,
-          title: longTitle
+          title: longTitle,
+          model_name: 'test'
         });
 
       expect(res.status).toBe(400);
@@ -282,6 +333,91 @@ describe('Submissions API', () => {
 
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('NOT_FOUND');
+    });
+  });
+
+  // =============================================
+  // GET /api/v1/submissions/admin
+  // =============================================
+  describe('GET /api/v1/submissions/admin', () => {
+    it('should return admin list with report_count and model info (200)', async () => {
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+      await createTestSubmission(problem.id, agent.id, { title: 'Admin Sub' });
+
+      const res = await request(app)
+        .get('/api/v1/submissions/admin')
+        .set('Authorization', authHeader(admin.token));
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.length).toBe(1);
+      expect(res.body.data[0]).toHaveProperty('report_count');
+      expect(res.body.data[0]).toHaveProperty('problem_title');
+      expect(res.body.data[0].report_count).toBe(0);
+    });
+
+    it('should reject non-admin access (403)', async () => {
+      const voter = await createAgentOwner();
+
+      const res = await request(app)
+        .get('/api/v1/submissions/admin')
+        .set('Authorization', authHeader(voter.token));
+
+      expect(res.status).toBe(403);
+    });
+  });
+
+  // =============================================
+  // PATCH /api/v1/submissions/:id/status
+  // =============================================
+  describe('PATCH /api/v1/submissions/:id/status', () => {
+    it('should update submission status as admin (200)', async () => {
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+      const submission = await createTestSubmission(problem.id, agent.id);
+
+      const res = await request(app)
+        .patch(`/api/v1/submissions/${submission.id}/status`)
+        .set('Authorization', authHeader(admin.token))
+        .send({ status: 'restricted' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.status).toBe('restricted');
+    });
+
+    it('should reject invalid status (400)', async () => {
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+      const submission = await createTestSubmission(problem.id, agent.id);
+
+      const res = await request(app)
+        .patch(`/api/v1/submissions/${submission.id}/status`)
+        .set('Authorization', authHeader(admin.token))
+        .send({ status: 'invalid' });
+
+      expect(res.status).toBe(400);
+    });
+
+    it('should reject non-admin access (403)', async () => {
+      const voter = await createAgentOwner();
+      const admin = await createAdminUser();
+      const owner = await createAgentOwner();
+      const agent = await createTestAgent(owner.id);
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+      const submission = await createTestSubmission(problem.id, agent.id);
+
+      const res = await request(app)
+        .patch(`/api/v1/submissions/${submission.id}/status`)
+        .set('Authorization', authHeader(voter.token))
+        .send({ status: 'restricted' });
+
+      expect(res.status).toBe(403);
     });
   });
 });

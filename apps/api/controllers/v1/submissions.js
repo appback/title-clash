@@ -1,5 +1,6 @@
 // Submissions controller: agent title submissions
 const db = require('../../db')
+const configManager = require('../../services/configManager')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
 const { ValidationError, NotFoundError, ConflictError, AppError } = require('../../utils/errors')
 
@@ -9,7 +10,7 @@ const { ValidationError, NotFoundError, ConflictError, AppError } = require('../
  */
 async function create(req, res, next) {
   try {
-    const { problem_id, title, metadata } = req.body
+    const { problem_id, title, metadata, model_name, model_version } = req.body
 
     // Validate input
     if (!problem_id) {
@@ -18,10 +19,14 @@ async function create(req, res, next) {
     if (!title || String(title).trim() === '') {
       throw new ValidationError('title is required')
     }
+    if (!model_name || String(model_name).trim() === '') {
+      throw new ValidationError('model_name is required')
+    }
 
     const trimmedTitle = String(title).trim()
-    if (trimmedTitle.length < 1 || trimmedTitle.length > 300) {
-      throw new ValidationError('title must be between 1 and 300 characters')
+    const maxLen = configManager.getNumber('submission_title_max_length', 300)
+    if (trimmedTitle.length < 1 || trimmedTitle.length > maxLen) {
+      throw new ValidationError(`title must be between 1 and ${maxLen} characters`)
     }
 
     // Check problem exists
@@ -57,10 +62,15 @@ async function create(req, res, next) {
 
     // Insert submission
     const result = await db.query(
-      `INSERT INTO submissions (problem_id, agent_id, title, metadata, status)
-       VALUES ($1, $2, $3, $4, 'active')
-       RETURNING id, problem_id, agent_id, title, metadata, status, created_at`,
-      [problem_id, req.agent.id, trimmedTitle, metadata ? JSON.stringify(metadata) : '{}']
+      `INSERT INTO submissions (problem_id, agent_id, title, metadata, status, model_name, model_version)
+       VALUES ($1, $2, $3, $4, 'active', $5, $6)
+       RETURNING id, problem_id, agent_id, title, metadata, status, model_name, model_version, created_at`,
+      [
+        problem_id, req.agent.id, trimmedTitle,
+        metadata ? JSON.stringify(metadata) : '{}',
+        String(model_name).trim(),
+        model_version ? String(model_version).trim() : null
+      ]
     )
 
     res.status(201).json(result.rows[0])
@@ -75,7 +85,7 @@ async function create(req, res, next) {
 
 /**
  * GET /api/v1/submissions
- * List submissions with optional filters.
+ * List submissions with optional filters. Restricted submissions appear last.
  */
 async function list(req, res, next) {
   try {
@@ -105,10 +115,11 @@ async function list(req, res, next) {
     const total = parseInt(countResult.rows[0].total, 10)
 
     // Get paginated data with agent name and vote count
+    // Restricted submissions sorted to the bottom
     const dataParams = [...params, limit, offset]
     const result = await db.query(
       `SELECT s.id, s.problem_id, s.agent_id, a.name AS agent_name,
-              s.title, s.status, s.created_at,
+              s.title, s.status, s.model_name, s.model_version, s.created_at,
               COALESCE(vc.cnt, 0)::int AS vote_count
        FROM submissions s
        LEFT JOIN agents a ON a.id = s.agent_id
@@ -116,7 +127,7 @@ async function list(req, res, next) {
          SELECT submission_id, COUNT(*) AS cnt FROM votes GROUP BY submission_id
        ) vc ON vc.submission_id = s.id
        ${whereClause}
-       ORDER BY s.created_at DESC
+       ORDER BY (CASE WHEN s.status = 'restricted' THEN 1 ELSE 0 END), s.created_at DESC
        LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
       dataParams
     )
@@ -137,7 +148,7 @@ async function get(req, res, next) {
 
     const result = await db.query(
       `SELECT s.id, s.problem_id, s.agent_id, a.name AS agent_name,
-              s.title, s.metadata, s.status, s.created_at,
+              s.title, s.metadata, s.status, s.model_name, s.model_version, s.created_at,
               COALESCE(vc.cnt, 0)::int AS vote_count
        FROM submissions s
        LEFT JOIN agents a ON a.id = s.agent_id
@@ -158,4 +169,101 @@ async function get(req, res, next) {
   }
 }
 
-module.exports = { create, list, get }
+/**
+ * GET /api/v1/submissions/admin
+ * Admin list: includes report_count and model info. Admin only.
+ */
+async function adminList(req, res, next) {
+  try {
+    const { page, limit, offset } = parsePagination(req.query)
+    const { problem_id, agent_id, status, has_reports } = req.query
+
+    const conditions = []
+    const params = []
+    let paramIdx = 1
+
+    if (problem_id) {
+      conditions.push(`s.problem_id = $${paramIdx++}`)
+      params.push(problem_id)
+    }
+    if (agent_id) {
+      conditions.push(`s.agent_id = $${paramIdx++}`)
+      params.push(agent_id)
+    }
+    if (status) {
+      conditions.push(`s.status = $${paramIdx++}`)
+      params.push(status)
+    }
+
+    const whereClause = conditions.length > 0 ? 'WHERE ' + conditions.join(' AND ') : ''
+
+    const countResult = await db.query(
+      `SELECT COUNT(*) AS total FROM submissions s ${whereClause}`,
+      params
+    )
+    const total = parseInt(countResult.rows[0].total, 10)
+
+    const dataParams = [...params, limit, offset]
+    let havingClause = ''
+    if (has_reports === 'true') {
+      havingClause = 'HAVING COALESCE(rc.cnt, 0) > 0'
+    }
+
+    const result = await db.query(
+      `SELECT s.id, s.problem_id, p.title AS problem_title, s.agent_id, a.name AS agent_name,
+              s.title, s.status, s.model_name, s.model_version, s.created_at,
+              COALESCE(vc.cnt, 0)::int AS vote_count,
+              COALESCE(rc.cnt, 0)::int AS report_count
+       FROM submissions s
+       LEFT JOIN agents a ON a.id = s.agent_id
+       LEFT JOIN problems p ON p.id = s.problem_id
+       LEFT JOIN (
+         SELECT submission_id, COUNT(*) AS cnt FROM votes GROUP BY submission_id
+       ) vc ON vc.submission_id = s.id
+       LEFT JOIN (
+         SELECT submission_id, COUNT(*) AS cnt FROM reports GROUP BY submission_id
+       ) rc ON rc.submission_id = s.id
+       ${whereClause}
+       ${havingClause}
+       ORDER BY s.created_at DESC
+       LIMIT $${paramIdx++} OFFSET $${paramIdx++}`,
+      dataParams
+    )
+
+    res.json(formatPaginatedResponse(result.rows, total, page, limit))
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * PATCH /api/v1/submissions/:id/status
+ * Admin: change submission status. Body: { status: 'active' | 'disqualified' | 'restricted' }
+ */
+async function updateStatus(req, res, next) {
+  try {
+    const { id } = req.params
+    const { status } = req.body
+
+    const validStatuses = ['active', 'disqualified', 'restricted']
+    if (!status || !validStatuses.includes(status)) {
+      throw new ValidationError(`status must be one of: ${validStatuses.join(', ')}`)
+    }
+
+    const result = await db.query(
+      `UPDATE submissions SET status = $1 WHERE id = $2
+       RETURNING id, problem_id, agent_id, title, status, model_name, model_version, created_at`,
+      [status, id]
+    )
+
+    if (result.rows.length === 0) {
+      throw new NotFoundError('Submission not found')
+    }
+
+    res.json(result.rows[0])
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { create, list, get, adminList, updateStatus }

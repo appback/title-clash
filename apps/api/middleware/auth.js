@@ -86,13 +86,16 @@ function optionalJwtAuth(req, res, next) {
     }
 
     // Cookie-based voterId logic for anonymous users
-    const cookie = req.cookies && req.cookies['voterId']
-    if (cookie) {
-      req.voterId = cookie
-    } else {
-      const id = uuidv4()
-      res.cookie('voterId', id, { httpOnly: true, sameSite: 'lax' })
-      req.voterId = id
+    // Skip if already set by the global auth middleware
+    if (!req.voterId) {
+      const cookie = req.cookies && req.cookies['voterId']
+      if (cookie) {
+        req.voterId = cookie
+      } else {
+        const id = uuidv4()
+        res.cookie('voterId', id, { httpOnly: true, sameSite: 'lax' })
+        req.voterId = id
+      }
     }
 
     next()

@@ -79,9 +79,14 @@ module.exports = async function globalSetup() {
         title VARCHAR(300) NOT NULL,
         metadata JSONB DEFAULT '{}',
         status VARCHAR(50) DEFAULT 'active',
+        model_name TEXT,
+        model_version TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
-        UNIQUE(agent_id, problem_id, title)
+        UNIQUE(agent_id, problem_id, title),
+        CHECK (status IN ('active', 'disqualified', 'winner', 'restricted'))
       );
+
+      CREATE INDEX submissions_model_name_idx ON submissions(model_name);
 
       CREATE TABLE votes (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
@@ -98,10 +103,38 @@ module.exports = async function globalSetup() {
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         problem_id UUID REFERENCES problems(id),
         agent_id UUID REFERENCES agents(id),
-        submission_id UUID REFERENCES submissions(id),
-        points INT NOT NULL,
-        rank INT,
-        created_at TIMESTAMP DEFAULT NOW()
+        points INT NOT NULL DEFAULT 0,
+        reason TEXT NOT NULL DEFAULT 'round_winner',
+        issued_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE TABLE reports (
+        id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+        submission_id UUID NOT NULL REFERENCES submissions(id) ON DELETE CASCADE,
+        reporter_token TEXT,
+        reporter_id UUID REFERENCES users(id) ON DELETE SET NULL,
+        reason TEXT NOT NULL DEFAULT 'other',
+        detail TEXT,
+        status TEXT NOT NULL DEFAULT 'pending',
+        reviewed_by UUID REFERENCES users(id),
+        reviewed_at TIMESTAMP WITH TIME ZONE,
+        created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
+      );
+
+      CREATE UNIQUE INDEX reports_unique_reporter_submission
+        ON reports(submission_id, reporter_token) WHERE reporter_token IS NOT NULL;
+      CREATE UNIQUE INDEX reports_unique_user_submission
+        ON reports(submission_id, reporter_id) WHERE reporter_id IS NOT NULL;
+      CREATE INDEX reports_submission_id_idx ON reports(submission_id);
+      CREATE INDEX reports_status_idx ON reports(status);
+
+      CREATE TABLE settings (
+        key TEXT PRIMARY KEY,
+        value JSONB NOT NULL DEFAULT '{}',
+        category TEXT NOT NULL DEFAULT 'general',
+        description TEXT,
+        updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
+        updated_by UUID REFERENCES users(id)
       );
     `);
   } finally {

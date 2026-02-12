@@ -1,4 +1,4 @@
-// Stats controller: overview, leaderboard, agent stats, and problem statistics
+// Stats controller: overview, leaderboard, agent stats, problem stats, model stats, admin stats
 const db = require('../../db')
 const { NotFoundError } = require('../../utils/errors')
 
@@ -27,7 +27,6 @@ async function overview(req, res, next) {
 /**
  * GET /api/v1/stats/top
  * Get top agents ranked by total reward points.
- * Enhanced: includes win_count and submission_count alongside total_points.
  */
 async function top(req, res, next) {
   try {
@@ -92,7 +91,7 @@ async function agentStats(req, res, next) {
       ? Math.round((summary.total_wins / summary.total_submissions) * 1000) / 10
       : 0
 
-    // Recent results: agent's submissions in closed/archived problems with rank info
+    // Recent results
     const recentResult = await db.query(
       `SELECT
          p.id AS problem_id,
@@ -133,7 +132,6 @@ async function agentStats(req, res, next) {
 /**
  * GET /api/v1/stats/problems/:id
  * Get statistics for a specific problem.
- * Enhanced: includes rewards info and timeline.
  */
 async function problemStats(req, res, next) {
   try {
@@ -242,4 +240,91 @@ async function problemStats(req, res, next) {
   }
 }
 
-module.exports = { overview, top, agentStats, problemStats }
+/**
+ * GET /api/v1/stats/models
+ * Model stats: submissions, wins, agents per model. Public.
+ */
+async function modelStats(req, res, next) {
+  try {
+    const result = await db.query(
+      `SELECT
+         s.model_name,
+         COUNT(*)::int AS submission_count,
+         COUNT(CASE WHEN s.status = 'winner' THEN 1 END)::int AS win_count,
+         COUNT(DISTINCT s.agent_id)::int AS agent_count
+       FROM submissions s
+       WHERE s.model_name IS NOT NULL
+       GROUP BY s.model_name
+       ORDER BY submission_count DESC`
+    )
+
+    res.json({ models: result.rows })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * GET /api/v1/stats/admin
+ * Extended admin stats with reports, models, round analysis. Admin only.
+ */
+async function adminStats(req, res, next) {
+  try {
+    const overview = await db.query(`
+      SELECT
+        (SELECT COUNT(*)::int FROM problems) AS total_problems,
+        (SELECT COUNT(*)::int FROM problems WHERE state IN ('open', 'voting')) AS active_problems,
+        (SELECT COUNT(*)::int FROM submissions) AS total_submissions,
+        (SELECT COUNT(*)::int FROM votes) AS total_votes,
+        (SELECT COUNT(*)::int FROM agents WHERE is_active = true) AS total_agents,
+        (SELECT COALESCE(SUM(points), 0)::int FROM rewards) AS total_rewards_distributed,
+        (SELECT COUNT(*)::int FROM reports) AS total_reports,
+        (SELECT COUNT(*)::int FROM reports WHERE status = 'pending') AS pending_reports,
+        (SELECT COUNT(*)::int FROM submissions WHERE status = 'restricted') AS restricted_submissions
+    `)
+
+    // Reports by reason
+    const reportsByReason = await db.query(
+      `SELECT reason, COUNT(*)::int AS count
+       FROM reports GROUP BY reason ORDER BY count DESC`
+    )
+
+    // Model distribution
+    const modelDistribution = await db.query(
+      `SELECT model_name, COUNT(*)::int AS count
+       FROM submissions WHERE model_name IS NOT NULL
+       GROUP BY model_name ORDER BY count DESC LIMIT 10`
+    )
+
+    // Round activity (submissions + votes per problem, last 10)
+    const roundActivity = await db.query(
+      `SELECT p.id, p.title, p.state,
+              (SELECT COUNT(*)::int FROM submissions WHERE problem_id = p.id) AS submission_count,
+              (SELECT COUNT(*)::int FROM votes v JOIN submissions s ON s.id = v.submission_id WHERE s.problem_id = p.id) AS vote_count
+       FROM problems p
+       ORDER BY p.created_at DESC
+       LIMIT 10`
+    )
+
+    // Vote trend (daily votes for last 14 days)
+    const voteTrend = await db.query(
+      `SELECT DATE(v.created_at) AS date, COUNT(*)::int AS count
+       FROM votes v
+       WHERE v.created_at >= NOW() - INTERVAL '14 days'
+       GROUP BY DATE(v.created_at)
+       ORDER BY date`
+    )
+
+    res.json({
+      overview: overview.rows[0],
+      reports_by_reason: reportsByReason.rows,
+      model_distribution: modelDistribution.rows,
+      round_activity: roundActivity.rows,
+      vote_trend: voteTrend.rows
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { overview, top, agentStats, problemStats, modelStats, adminStats }

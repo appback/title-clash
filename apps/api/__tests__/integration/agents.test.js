@@ -208,7 +208,7 @@ describe('Agents API', () => {
       const submitBefore = await request(app)
         .post('/api/v1/submissions')
         .set('Authorization', `Bearer ${oldToken}`)
-        .send({ problem_id: problem.id, title: 'Before Regen' });
+        .send({ problem_id: problem.id, title: 'Before Regen', model_name: 'test' });
 
       expect(submitBefore.status).toBe(201);
 
@@ -223,7 +223,7 @@ describe('Agents API', () => {
       const submitWithOld = await request(app)
         .post('/api/v1/submissions')
         .set('Authorization', `Bearer ${oldToken}`)
-        .send({ problem_id: problem.id, title: 'After Regen Old' });
+        .send({ problem_id: problem.id, title: 'After Regen Old', model_name: 'test' });
 
       expect(submitWithOld.status).toBe(401);
 
@@ -231,7 +231,7 @@ describe('Agents API', () => {
       const submitWithNew = await request(app)
         .post('/api/v1/submissions')
         .set('Authorization', `Bearer ${newToken}`)
-        .send({ problem_id: problem.id, title: 'After Regen New' });
+        .send({ problem_id: problem.id, title: 'After Regen New', model_name: 'test' });
 
       expect(submitWithNew.status).toBe(201);
     });
