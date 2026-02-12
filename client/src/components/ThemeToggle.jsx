@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
+import { useLang } from '../i18n'
 
 export default function ThemeToggle() {
+  const { t } = useLang()
   const [dark, setDark] = useState(() => {
     if (typeof window === 'undefined') return false
     return localStorage.getItem('theme') === 'dark'
@@ -15,8 +17,8 @@ export default function ThemeToggle() {
     <button
       className="btn btn-ghost btn-icon"
       onClick={() => setDark(d => !d)}
-      aria-label={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      title={dark ? 'Light mode' : 'Dark mode'}
+      aria-label={dark ? t('theme.switchToLight') : t('theme.switchToDark')}
+      title={dark ? t('theme.lightMode') : t('theme.darkMode')}
     >
       {dark ? '\u2600' : '\u263E'}
     </button>

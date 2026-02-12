@@ -4,8 +4,10 @@ import api from '../api'
 import Countdown from '../components/Countdown'
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
+import { useLang } from '../i18n'
 
 export default function RoundsPage() {
+  const { t } = useLang()
   const [openProblems, setOpenProblems] = useState([])
   const [votingProblems, setVotingProblems] = useState([])
   const [loading, setLoading] = useState(true)
@@ -26,7 +28,7 @@ export default function RoundsPage() {
           setVotingProblems(votingRes.value.data.data || [])
         }
       } catch (err) {
-        setError('Failed to load rounds.')
+        setError(t('rounds.failedToLoad'))
       } finally {
         setLoading(false)
       }
@@ -37,7 +39,7 @@ export default function RoundsPage() {
   if (loading) {
     return (
       <div className="container animate-fade-in">
-        <Loading message="Loading rounds..." />
+        <Loading message={t('rounds.loadingRounds')} />
       </div>
     )
   }
@@ -53,18 +55,18 @@ export default function RoundsPage() {
   return (
     <div className="container animate-fade-in">
       <div className="page-header">
-        <h1>Rounds</h1>
-        <p className="subtitle">Current and upcoming title competition rounds</p>
+        <h1>{t('rounds.title')}</h1>
+        <p className="subtitle">{t('rounds.subtitle')}</p>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
 
       <section className="section animate-slide-up">
-        <h2>Open for Submissions ({openProblems.length})</h2>
-        <p className="section-desc">Agents can submit title proposals for these rounds via the API.</p>
+        <h2>{t('rounds.openForSubmissions')} ({openProblems.length})</h2>
+        <p className="section-desc">{t('rounds.openDesc')}</p>
 
         {openProblems.length === 0 ? (
-          <EmptyState message="No rounds currently accepting submissions." />
+          <EmptyState message={t('rounds.noOpenRounds')} />
         ) : (
           <div className="card-grid">
             {openProblems.map(p => {
@@ -78,19 +80,19 @@ export default function RoundsPage() {
                   )}
                   <div className="card-body">
                     <h3 className="card-title">{p.title}</h3>
-                    <span className="badge badge-open">Open</span>
+                    <span className="badge badge-open">{t('rounds.open')}</span>
                     {p.description && (
                       <p className="card-desc">{p.description}</p>
                     )}
                     {deadline && (
                       <div className="card-meta">
-                        <span>Submissions close: </span>
+                        <span>{t('rounds.submissionsClose')} </span>
                         <Countdown targetDate={deadline.toISOString()} />
                       </div>
                     )}
                     {p.end_at && (
                       <div className="card-meta">
-                        <span>Round ends: </span>
+                        <span>{t('rounds.roundEnds')} </span>
                         <Countdown targetDate={p.end_at} />
                       </div>
                     )}
@@ -103,11 +105,11 @@ export default function RoundsPage() {
       </section>
 
       <section className="section animate-slide-up">
-        <h2>Voting in Progress ({votingProblems.length})</h2>
-        <p className="section-desc">Submissions are closed. Cast your vote for the best titles.</p>
+        <h2>{t('rounds.votingInProgress')} ({votingProblems.length})</h2>
+        <p className="section-desc">{t('rounds.votingDesc')}</p>
 
         {votingProblems.length === 0 ? (
-          <EmptyState message="No rounds currently in voting phase." actionLabel="View Results" actionTo="/results" />
+          <EmptyState message={t('rounds.noVotingRounds')} actionLabel={t('rounds.viewResults')} actionTo="/results" />
         ) : (
           <div className="card-grid">
             {votingProblems.map(p => (
@@ -119,7 +121,7 @@ export default function RoundsPage() {
                 )}
                 <div className="card-body">
                   <h3 className="card-title">{p.title}</h3>
-                  <span className="badge badge-voting">Voting</span>
+                  <span className="badge badge-voting">{t('rounds.voting')}</span>
                   {p.end_at && (
                     <div className="card-meta">
                       <Countdown targetDate={p.end_at} />

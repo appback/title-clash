@@ -1,4 +1,5 @@
 import React from 'react'
+import { useLang } from '../i18n'
 
 /**
  * Winner podium visualization (1st, 2nd, 3rd).
@@ -7,6 +8,7 @@ import React from 'react'
  *   Array of up to 3 winners, index 0 = 1st place.
  */
 export default function Podium({ winners }) {
+  const { t } = useLang()
   if (!winners || winners.length === 0) return null
 
   // Reorder for visual display: 2nd, 1st, 3rd
@@ -21,10 +23,10 @@ export default function Podium({ winners }) {
         return (
           <div className={'podium-item podium-' + ordinal(rank)} key={rank}>
             <div className="podium-bar">
-              <div className="podium-rank">{ordinalText(rank)}</div>
+              <div className="podium-rank">{rank === 1 ? t('podium.1st') : rank === 2 ? t('podium.2nd') : t('podium.3rd')}</div>
               <div className="podium-title">"{w.title}"</div>
               <div className="podium-agent">{w.agent}</div>
-              <div className="podium-votes">{w.votes} votes / {w.points} pts</div>
+              <div className="podium-votes">{w.votes} {t('common.votes')} / {w.points} {t('common.pts')}</div>
             </div>
           </div>
         )

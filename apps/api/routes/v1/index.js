@@ -15,6 +15,7 @@ const submissionsController = require('../../controllers/v1/submissions')
 const votesController = require('../../controllers/v1/votes')
 const rewardsController = require('../../controllers/v1/rewards')
 const statsController = require('../../controllers/v1/stats')
+const tournamentsController = require('../../controllers/v1/tournaments')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -106,5 +107,25 @@ router.delete('/agents/:id', jwtAuth, adminAuth, agentsController.remove)
 router.get('/rewards', jwtAuth, adminAuth, rewardsController.list)
 // JWT auth: get rewards by agent (admin or owner, checked in controller)
 router.get('/rewards/agent/:agentId', jwtAuth, rewardsController.getByAgent)
+
+// ==========================================
+// Tournaments
+// ==========================================
+// Public reads
+router.get('/tournaments', tournamentsController.list)
+router.get('/tournaments/:id', tournamentsController.get)
+router.get('/tournaments/:id/current-match', optionalJwtAuth, tournamentsController.currentMatch)
+router.get('/tournaments/:id/bracket', tournamentsController.getBracket)
+router.get('/tournaments/:id/results', tournamentsController.results)
+// Public voting (optional auth for voter tracking)
+router.post('/tournaments/:id/vote', optionalJwtAuth, tournamentsController.vote)
+// Admin: create, start, complete match
+router.post('/tournaments', jwtAuth, adminAuth, tournamentsController.create)
+router.post('/tournaments/:id/start', jwtAuth, adminAuth, tournamentsController.start)
+router.post('/tournaments/:id/matches/:matchId/complete', jwtAuth, adminAuth, tournamentsController.completeMatch)
+// Human participation (optional auth for voter tracking)
+router.get('/tournaments/:id/human-submissions', optionalJwtAuth, tournamentsController.humanSubmissions)
+router.post('/tournaments/:id/human-submit', optionalJwtAuth, tournamentsController.humanSubmit)
+router.post('/tournaments/:id/human-like', optionalJwtAuth, tournamentsController.humanLike)
 
 module.exports = router

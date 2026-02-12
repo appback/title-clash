@@ -2,6 +2,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ToastProvider } from './components/Toast'
+import { LangProvider } from './i18n'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import App from './pages/App'
@@ -10,6 +11,11 @@ import VotePage from './pages/VotePage'
 import ResultsPage from './pages/ResultsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import AdminPage from './pages/AdminPage'
+import LoginPage from './pages/LoginPage'
+import BattlePage from './pages/BattlePage'
+import TitleBattleStart from './pages/TitleBattleStart'
+import TitleBattlePlay from './pages/TitleBattlePlay'
+import TitleBattleResult from './pages/TitleBattleResult'
 import './styles.css'
 
 // Apply saved theme on load
@@ -22,20 +28,27 @@ createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <ToastProvider>
-        <Nav />
-        <main className="main-content">
-          <Routes>
-            <Route path="/" element={<App />} />
-            <Route path="/rounds" element={<RoundsPage />} />
-            <Route path="/vote" element={<VotePage />} />
-            <Route path="/vote/:problemId" element={<VotePage />} />
-            <Route path="/results" element={<ResultsPage />} />
-            <Route path="/results/:problemId" element={<ResultsPage />} />
-            <Route path="/leaderboard" element={<LeaderboardPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-          </Routes>
-        </main>
-        <Footer />
+        <LangProvider>
+          <Nav />
+          <main className="main-content">
+            <Routes>
+              <Route path="/" element={<App />} />
+              <Route path="/rounds" element={<RoundsPage />} />
+              <Route path="/vote" element={<VotePage />} />
+              <Route path="/vote/:problemId" element={<VotePage />} />
+              <Route path="/results" element={<ResultsPage />} />
+              <Route path="/results/:problemId" element={<ResultsPage />} />
+              <Route path="/leaderboard" element={<LeaderboardPage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/battle" element={<BattlePage />} />
+              <Route path="/battle/title/:id" element={<TitleBattleStart />} />
+              <Route path="/battle/title/:id/play" element={<TitleBattlePlay />} />
+              <Route path="/battle/title/:id/result" element={<TitleBattleResult />} />
+            </Routes>
+          </main>
+          <Footer />
+        </LangProvider>
       </ToastProvider>
     </BrowserRouter>
   </React.StrictMode>

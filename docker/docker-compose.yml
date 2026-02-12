@@ -16,6 +16,23 @@ services:
       timeout: 3s
       retries: 5
 
+  minio:
+    image: minio/minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
   api:
     build:
       context: ../apps/api
@@ -23,18 +40,21 @@ services:
       - DATABASE_URL=postgres://postgres:postgres@db:5432/titleclash
       - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-me-in-prod}
       - JWT_EXPIRES_IN=24h
-      - STORAGE_MODE=${STORAGE_MODE:-local}
+      - STORAGE_MODE=${STORAGE_MODE:-s3}
       - AWS_REGION=${AWS_REGION:-ap-northeast-2}
-      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-}
-      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-}
-      - S3_BUCKET=${S3_BUCKET:-}
-      - S3_URL_PREFIX=${S3_URL_PREFIX:-}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - S3_BUCKET=${S3_BUCKET:-titleclash}
+      - S3_URL_PREFIX=${S3_URL_PREFIX:-http://localhost:9000/titleclash}
+      - S3_ENDPOINT=${S3_ENDPOINT:-http://minio:9000}
       - NODE_ENV=${NODE_ENV:-development}
       - CORS_ORIGINS=http://localhost:8088
     ports:
       - "3000:3000"
     depends_on:
       db:
+        condition: service_healthy
+      minio:
         condition: service_healthy
     volumes:
       - api_uploads:/app/uploads
@@ -51,4 +71,6 @@ volumes:
   titleclash_pgdata:
     driver: local
   api_uploads:
+    driver: local
+  minio_data:
     driver: local

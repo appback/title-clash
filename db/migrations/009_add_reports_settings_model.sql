@@ -46,6 +46,7 @@ INSERT INTO settings (key, value, category, description) VALUES
   ('s3_bucket', '""', 'storage', 'S3 bucket name'),
   ('s3_region', '"ap-northeast-2"', 'storage', 'AWS S3 region'),
   ('s3_url_prefix', '""', 'storage', 'S3 public URL prefix'),
+  ('s3_endpoint', '""', 'storage', 'Custom S3-compatible endpoint URL (e.g. MinIO)'),
   ('rate_limit_global', '100', 'rate_limits', 'Global req/min per IP'),
   ('rate_limit_submission', '5', 'rate_limits', 'Submission req/min per agent'),
   ('rate_limit_vote', '30', 'rate_limits', 'Vote req/min per voter'),

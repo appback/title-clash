@@ -1,86 +1,43 @@
 import React, { useState, useEffect } from 'react'
+import { Navigate } from 'react-router-dom'
 import api from '../api'
 import { adminApi } from '../api'
 import Loading from '../components/Loading'
 import Modal from '../components/Modal'
 import ImageUpload from '../components/ImageUpload'
 import { useToast } from '../components/Toast'
+import { useLang } from '../i18n'
 
 export default function AdminPage() {
+  const { t } = useLang()
   const [activeTab, setActiveTab] = useState('problems')
   const [token, setToken] = useState(localStorage.getItem('admin_token'))
-  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
-  const [loginError, setLoginError] = useState('')
-  const [loggingIn, setLoggingIn] = useState(false)
-
-  async function handleLogin(e) {
-    e.preventDefault()
-    setLoginError('')
-    setLoggingIn(true)
-    try {
-      const res = await api.post('/auth/login', loginForm)
-      const { token: jwt, user } = res.data
-      if (user.role !== 'admin') {
-        setLoginError('Admin access only.')
-        return
-      }
-      localStorage.setItem('admin_token', jwt)
-      setToken(jwt)
-    } catch (err) {
-      setLoginError(err.response?.data?.message || 'Login failed')
-    } finally {
-      setLoggingIn(false)
-    }
-  }
 
   function handleLogout() {
     localStorage.removeItem('admin_token')
     setToken(null)
-    setLoginForm({ email: '', password: '' })
+    window.dispatchEvent(new Event('admin-auth-change'))
   }
 
   if (!token) {
-    return (
-      <div className="container animate-fade-in">
-        <div className="page-header" style={{ textAlign: 'center' }}>
-          <h1>Admin Login</h1>
-          <p className="subtitle">Sign in with your admin account</p>
-        </div>
-        <form onSubmit={handleLogin} style={{ maxWidth: '400px', margin: '0 auto' }}>
-          {loginError && <div className="alert alert-error">{loginError}</div>}
-          <div className="form-group">
-            <label className="input-label">Email</label>
-            <input className="input" type="email" required autoFocus
-              value={loginForm.email} onChange={e => setLoginForm({...loginForm, email: e.target.value})} />
-          </div>
-          <div className="form-group">
-            <label className="input-label">Password</label>
-            <input className="input" type="password" required
-              value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
-          </div>
-          <button className="btn btn-primary" type="submit" disabled={loggingIn} style={{ width: '100%' }}>
-            {loggingIn ? 'Signing in...' : 'Sign In'}
-          </button>
-        </form>
-      </div>
-    )
+    return <Navigate to="/login" replace />
   }
 
   const tabs = [
-    { id: 'problems', label: 'Problems' },
-    { id: 'submissions', label: 'Submissions' },
-    { id: 'agents', label: 'Agents' },
-    { id: 'statistics', label: 'Statistics' },
-    { id: 'settings', label: 'Settings' }
+    { id: 'problems', label: t('admin.problems') },
+    { id: 'submissions', label: t('admin.submissions') },
+    { id: 'agents', label: t('admin.agents') },
+    { id: 'statistics', label: t('admin.statistics') },
+    { id: 'settings', label: t('admin.settings') }
   ]
 
   return (
     <div className="container animate-fade-in">
       <div className="page-header">
-        <h1>Admin Dashboard</h1>
+        <h1>{t('admin.title')}</h1>
         <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
-          <p className="subtitle" style={{ margin: 0 }}>Manage problems, submissions, agents, and settings</p>
-          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
+          <p className="subtitle" style={{ margin: 0 }}>{t('admin.subtitle')}</p>
+          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>{t('admin.logout')}</button>
         </div>
       </div>
 
@@ -109,6 +66,7 @@ export default function AdminPage() {
 // Problems Tab
 // ==========================================
 function ProblemsAdmin() {
+  const { t } = useLang()
   const [problems, setProblems] = useState([])
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
@@ -128,7 +86,7 @@ function ProblemsAdmin() {
   useEffect(() => { fetchProblems() }, [])
 
   async function handleCreate() {
-    if (!token) { toast.error('Admin token required. Set in localStorage key "admin_token".'); return }
+    if (!token) { toast.error('Admin token required.'); return }
     setSubmitting(true)
     try {
       await adminApi.post('/problems', {
@@ -138,7 +96,7 @@ function ProblemsAdmin() {
         start_at: form.start_at ? new Date(form.start_at).toISOString() : undefined,
         end_at: form.end_at ? new Date(form.end_at).toISOString() : undefined
       })
-      toast.success('Problem created')
+      toast.success(t('admin.problemCreated'))
       setShowCreate(false)
       setForm({ title: '', description: '', image_url: '', start_at: '', end_at: '' })
       fetchProblems()
@@ -151,14 +109,14 @@ function ProblemsAdmin() {
     if (!token) { toast.error('Admin token required'); return }
     try {
       await adminApi.patch('/problems/' + problemId, { state: newState })
-      toast.success('State updated to ' + newState)
+      toast.success(t('admin.stateUpdated') + ' ' + newState)
       fetchProblems()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update state')
     }
   }
 
-  if (loading) return <Loading message="Loading problems..." />
+  if (loading) return <Loading message={t('admin.loadingProblems')} />
 
   const nextStates = {
     draft: ['open', 'archived'],
@@ -170,9 +128,9 @@ function ProblemsAdmin() {
   return (
     <div>
       <div className="section-header">
-        <h2>Problems ({problems.length})</h2>
+        <h2>{t('admin.problems')} ({problems.length})</h2>
         <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
-          Create Problem
+          {t('admin.createProblem')}
         </button>
       </div>
 
@@ -180,11 +138,11 @@ function ProblemsAdmin() {
         <table className="table">
           <thead>
             <tr>
-              <th>Title</th>
-              <th>State</th>
-              <th>Start</th>
-              <th>End</th>
-              <th>Actions</th>
+              <th>{t('admin.titleLabel')}</th>
+              <th>{t('admin.state')}</th>
+              <th>{t('admin.start')}</th>
+              <th>{t('admin.end')}</th>
+              <th>{t('admin.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -216,27 +174,27 @@ function ProblemsAdmin() {
       <Modal
         open={showCreate}
         onClose={() => setShowCreate(false)}
-        title="Create Problem"
+        title={t('admin.createProblem')}
         footer={
           <>
-            <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>Cancel</button>
+            <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>{t('admin.cancel')}</button>
             <button className="btn btn-primary" onClick={handleCreate} disabled={submitting || !form.title}>
-              {submitting ? 'Creating...' : 'Create'}
+              {submitting ? t('admin.creating') : t('admin.create')}
             </button>
           </>
         }
       >
         <div className="form-group">
-          <label className="input-label">Title *</label>
+          <label className="input-label">{t('admin.titleLabel')} *</label>
           <input className="input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
         </div>
         <div className="form-group">
-          <label className="input-label">Description</label>
+          <label className="input-label">{t('admin.description')}</label>
           <textarea className="input textarea" value={form.description}
             onChange={e => setForm({...form, description: e.target.value})} />
         </div>
         <div className="form-group">
-          <label className="input-label">Image</label>
+          <label className="input-label">{t('admin.image')}</label>
           <ImageUpload
             value={form.image_url}
             onChange={url => setForm({...form, image_url: url})}
@@ -245,12 +203,12 @@ function ProblemsAdmin() {
         </div>
         <div className="form-row">
           <div className="form-group">
-            <label className="input-label">Start At</label>
+            <label className="input-label">{t('admin.startAt')}</label>
             <input className="input" type="datetime-local" value={form.start_at}
               onChange={e => setForm({...form, start_at: e.target.value})} />
           </div>
           <div className="form-group">
-            <label className="input-label">End At</label>
+            <label className="input-label">{t('admin.endAt')}</label>
             <input className="input" type="datetime-local" value={form.end_at}
               onChange={e => setForm({...form, end_at: e.target.value})} />
           </div>
@@ -264,6 +222,7 @@ function ProblemsAdmin() {
 // Submissions Tab
 // ==========================================
 function SubmissionsAdmin() {
+  const { t } = useLang()
   const [submissions, setSubmissions] = useState([])
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ status: '', has_reports: '' })
@@ -317,36 +276,36 @@ function SubmissionsAdmin() {
   return (
     <div>
       <div className="section-header">
-        <h2>Submissions</h2>
+        <h2>{t('admin.submissions')}</h2>
         <div className="filter-bar" style={{ marginBottom: 0 }}>
           <select className="input select" style={{ width: 'auto' }}
             value={filters.status} onChange={e => setFilters({...filters, status: e.target.value})}>
-            <option value="">All Status</option>
-            <option value="active">Active</option>
-            <option value="restricted">Restricted</option>
-            <option value="disqualified">Disqualified</option>
-            <option value="winner">Winner</option>
+            <option value="">{t('admin.allStatus')}</option>
+            <option value="active">{t('admin.active')}</option>
+            <option value="restricted">{t('admin.restricted')}</option>
+            <option value="disqualified">{t('admin.disqualified')}</option>
+            <option value="winner">{t('admin.winnerStatus')}</option>
           </select>
           <select className="input select" style={{ width: 'auto' }}
             value={filters.has_reports} onChange={e => setFilters({...filters, has_reports: e.target.value})}>
-            <option value="">All</option>
-            <option value="true">Has Reports</option>
+            <option value="">{t('admin.all')}</option>
+            <option value="true">{t('admin.hasReports')}</option>
           </select>
         </div>
       </div>
 
-      {loading ? <Loading message="Loading submissions..." /> : (
+      {loading ? <Loading message={t('admin.loadingSubmissions')} /> : (
         <div className="table-wrapper">
           <table className="table">
             <thead>
               <tr>
-                <th>Title</th>
-                <th>Agent</th>
-                <th>Model</th>
-                <th>Status</th>
-                <th>Reports</th>
-                <th>Votes</th>
-                <th>Actions</th>
+                <th>{t('admin.titleLabel')}</th>
+                <th>{t('admin.agent')}</th>
+                <th>{t('admin.model')}</th>
+                <th>{t('admin.status')}</th>
+                <th>{t('admin.reports')}</th>
+                <th>{t('admin.votesCol')}</th>
+                <th>{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -367,13 +326,13 @@ function SubmissionsAdmin() {
                   <td>
                     <div className="btn-group">
                       {s.status !== 'active' && (
-                        <button className="btn btn-sm btn-success" onClick={() => handleStatusChange(s.id, 'active')}>Activate</button>
+                        <button className="btn btn-sm btn-success" onClick={() => handleStatusChange(s.id, 'active')}>{t('admin.activate')}</button>
                       )}
                       {s.status !== 'restricted' && (
-                        <button className="btn btn-sm btn-secondary" onClick={() => handleStatusChange(s.id, 'restricted')}>Restrict</button>
+                        <button className="btn btn-sm btn-secondary" onClick={() => handleStatusChange(s.id, 'restricted')}>{t('admin.restrict')}</button>
                       )}
                       {s.status !== 'disqualified' && (
-                        <button className="btn btn-sm btn-danger" onClick={() => handleStatusChange(s.id, 'disqualified')}>Disqualify</button>
+                        <button className="btn btn-sm btn-danger" onClick={() => handleStatusChange(s.id, 'disqualified')}>{t('admin.disqualify')}</button>
                       )}
                     </div>
                   </td>
@@ -388,10 +347,10 @@ function SubmissionsAdmin() {
       <Modal
         open={!!reportDetail}
         onClose={() => setReportDetail(null)}
-        title="Reports for Submission"
+        title={t('admin.reportsForSubmission')}
       >
         {reports.length === 0 ? (
-          <p>No reports found.</p>
+          <p>{t('admin.noReportsFound')}</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--spacing-md)' }}>
             {reports.map(r => (
@@ -406,12 +365,12 @@ function SubmissionsAdmin() {
                     {new Date(r.created_at).toLocaleString()}
                   </span>
                 </div>
-                <p><strong>Reason:</strong> {r.reason}</p>
+                <p><strong>{t('admin.reason')}:</strong> {r.reason}</p>
                 {r.detail && <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--spacing-xs)' }}>{r.detail}</p>}
                 {r.status === 'pending' && (
                   <div className="btn-group" style={{ marginTop: 'var(--spacing-sm)' }}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => handleReviewReport(r.id, 'dismissed')}>Dismiss</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleReviewReport(r.id, 'confirmed')}>Confirm</button>
+                    <button className="btn btn-sm btn-secondary" onClick={() => handleReviewReport(r.id, 'dismissed')}>{t('admin.dismiss')}</button>
+                    <button className="btn btn-sm btn-danger" onClick={() => handleReviewReport(r.id, 'confirmed')}>{t('admin.confirm')}</button>
                   </div>
                 )}
               </div>
@@ -424,9 +383,10 @@ function SubmissionsAdmin() {
 }
 
 // ==========================================
-// Agents Tab (unchanged from original)
+// Agents Tab
 // ==========================================
 function AgentsAdmin() {
+  const { t } = useLang()
   const [agents, setAgents] = useState([])
   const [loading, setLoading] = useState(true)
   const token = localStorage.getItem('admin_token')
@@ -443,26 +403,26 @@ function AgentsAdmin() {
     fetchAgents()
   }, [token])
 
-  if (!token) return <div className="empty-state">Set admin_token in localStorage to view agents.</div>
-  if (loading) return <Loading message="Loading agents..." />
+  if (!token) return <div className="empty-state">{t('admin.setTokenMsg')}</div>
+  if (loading) return <Loading message={t('admin.loadingAgents')} />
 
   return (
     <div>
-      <h2 className="section-title">Registered Agents ({agents.length})</h2>
+      <h2 className="section-title">{t('admin.registeredAgents')} ({agents.length})</h2>
       <div className="table-wrapper">
         <table className="table">
           <thead>
             <tr>
-              <th>Name</th>
-              <th>Active</th>
-              <th>Created</th>
+              <th>{t('admin.nameCol')}</th>
+              <th>{t('admin.activeCol')}</th>
+              <th>{t('admin.created')}</th>
             </tr>
           </thead>
           <tbody>
             {agents.map(a => (
               <tr key={a.id}>
                 <td>{a.name}</td>
-                <td>{a.is_active ? 'Yes' : 'No'}</td>
+                <td>{a.is_active ? t('admin.yes') : t('admin.no')}</td>
                 <td>{new Date(a.created_at).toLocaleString()}</td>
               </tr>
             ))}
@@ -474,9 +434,10 @@ function AgentsAdmin() {
 }
 
 // ==========================================
-// Statistics Tab (extended)
+// Statistics Tab
 // ==========================================
 function StatisticsAdmin() {
+  const { t } = useLang()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
 
@@ -491,30 +452,30 @@ function StatisticsAdmin() {
     fetchStats()
   }, [])
 
-  if (loading) return <Loading message="Loading statistics..." />
-  if (!data) return <div className="empty-state">Could not load admin stats.</div>
+  if (loading) return <Loading message={t('admin.loadingStatistics')} />
+  if (!data) return <div className="empty-state">{t('admin.couldNotLoadStats')}</div>
 
   const ov = data.overview
 
   return (
     <div>
-      <h2 className="section-title">Platform Overview</h2>
+      <h2 className="section-title">{t('admin.platformOverview')}</h2>
       <div className="stats-grid">
-        <div className="stat-card"><div className="stat-value">{ov.total_problems}</div><div className="stat-label">Problems</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.active_problems}</div><div className="stat-label">Active</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.total_submissions}</div><div className="stat-label">Submissions</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.total_votes}</div><div className="stat-label">Votes</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.total_agents}</div><div className="stat-label">Agents</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.total_rewards_distributed}</div><div className="stat-label">Points</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.total_reports}</div><div className="stat-label">Total Reports</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.pending_reports}</div><div className="stat-label">Pending Reports</div></div>
-        <div className="stat-card"><div className="stat-value">{ov.restricted_submissions}</div><div className="stat-label">Restricted</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_problems}</div><div className="stat-label">{t('admin.problemsLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.active_problems}</div><div className="stat-label">{t('admin.activeLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_submissions}</div><div className="stat-label">{t('admin.submissionsLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_votes}</div><div className="stat-label">{t('admin.votesLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_agents}</div><div className="stat-label">{t('admin.agentsLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_rewards_distributed}</div><div className="stat-label">{t('admin.pointsLabel')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.total_reports}</div><div className="stat-label">{t('admin.totalReports')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.pending_reports}</div><div className="stat-label">{t('admin.pendingReports')}</div></div>
+        <div className="stat-card"><div className="stat-value">{ov.restricted_submissions}</div><div className="stat-label">{t('admin.restrictedLabel')}</div></div>
       </div>
 
       {/* Reports by Reason */}
       {data.reports_by_reason.length > 0 && (
         <div className="section">
-          <h3 className="section-title">Reports by Reason</h3>
+          <h3 className="section-title">{t('admin.reportsByReason')}</h3>
           <div className="bar-chart">
             {data.reports_by_reason.map(r => {
               const max = data.reports_by_reason[0]?.count || 1
@@ -536,7 +497,7 @@ function StatisticsAdmin() {
       {/* Model Distribution */}
       {data.model_distribution.length > 0 && (
         <div className="section">
-          <h3 className="section-title">Model Distribution</h3>
+          <h3 className="section-title">{t('admin.modelDistribution')}</h3>
           <div className="bar-chart">
             {data.model_distribution.map(m => {
               const max = data.model_distribution[0]?.count || 1
@@ -558,15 +519,15 @@ function StatisticsAdmin() {
       {/* Round Activity */}
       {data.round_activity.length > 0 && (
         <div className="section">
-          <h3 className="section-title">Round Activity (Recent)</h3>
+          <h3 className="section-title">{t('admin.roundActivity')}</h3>
           <div className="table-wrapper">
             <table className="table">
               <thead>
                 <tr>
-                  <th>Problem</th>
-                  <th>State</th>
-                  <th>Submissions</th>
-                  <th>Votes</th>
+                  <th>{t('admin.problem')}</th>
+                  <th>{t('admin.state')}</th>
+                  <th>{t('admin.submissions')}</th>
+                  <th>{t('admin.votesCol')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -587,7 +548,7 @@ function StatisticsAdmin() {
       {/* Vote Trend */}
       {data.vote_trend.length > 0 && (
         <div className="section">
-          <h3 className="section-title">Vote Trend (14 days)</h3>
+          <h3 className="section-title">{t('admin.voteTrend')}</h3>
           <div className="bar-chart">
             {data.vote_trend.map(d => {
               const max = Math.max(...data.vote_trend.map(v => v.count)) || 1
@@ -613,6 +574,7 @@ function StatisticsAdmin() {
 // Settings Tab
 // ==========================================
 function SettingsAdmin() {
+  const { t } = useLang()
   const [settings, setSettings] = useState({})
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -636,7 +598,7 @@ function SettingsAdmin() {
   }
 
   async function handleSave() {
-    if (Object.keys(edits).length === 0) { toast.info('No changes to save'); return }
+    if (Object.keys(edits).length === 0) { toast.info(t('admin.noChanges')); return }
     setSaving(true)
     try {
       // Convert numeric-looking values to numbers
@@ -647,7 +609,7 @@ function SettingsAdmin() {
         processed[key] = !isNaN(num) && trimmed !== '' && typeof settings[key] === 'number' ? num : trimmed
       }
       await adminApi.put('/settings', { settings: processed })
-      toast.success('Settings saved')
+      toast.success(t('admin.settingsSaved'))
       fetchSettings()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to save settings')
@@ -658,14 +620,14 @@ function SettingsAdmin() {
     setRefreshing(true)
     try {
       await adminApi.post('/settings/refresh')
-      toast.success('Settings cache refreshed')
+      toast.success(t('admin.cacheRefreshed'))
       fetchSettings()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to refresh')
     } finally { setRefreshing(false) }
   }
 
-  if (loading) return <Loading message="Loading settings..." />
+  if (loading) return <Loading message={t('admin.loadingSettings')} />
 
   // Group settings by category
   const categories = {}
@@ -676,24 +638,24 @@ function SettingsAdmin() {
   }
 
   const categoryLabels = {
-    storage: 'Storage',
-    rate_limits: 'Rate Limits',
-    rewards: 'Rewards',
-    submissions: 'Submissions',
-    moderation: 'Moderation',
-    general: 'General'
+    storage: t('admin.storage'),
+    rate_limits: t('admin.rateLimits'),
+    rewards: t('admin.rewardsLabel'),
+    submissions: t('admin.submissionsSettings'),
+    moderation: t('admin.moderation'),
+    general: t('admin.general')
   }
 
   return (
     <div>
       <div className="section-header">
-        <h2>Service Settings</h2>
+        <h2>{t('admin.serviceSettings')}</h2>
         <div className="btn-group">
           <button className="btn btn-secondary btn-sm" onClick={handleRefresh} disabled={refreshing}>
-            {refreshing ? 'Refreshing...' : 'Refresh Cache'}
+            {refreshing ? t('admin.refreshing') : t('admin.refreshCache')}
           </button>
           <button className="btn btn-primary btn-sm" onClick={handleSave} disabled={saving || Object.keys(edits).length === 0}>
-            {saving ? 'Saving...' : `Save Changes (${Object.keys(edits).length})`}
+            {saving ? t('admin.saving') : `${t('admin.saveChanges')} (${Object.keys(edits).length})`}
           </button>
         </div>
       </div>

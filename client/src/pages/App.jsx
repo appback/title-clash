@@ -4,8 +4,10 @@ import api from '../api'
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import Countdown from '../components/Countdown'
+import { useLang } from '../i18n'
 
 export default function App() {
+  const { t } = useLang()
   const [overview, setOverview] = useState(null)
   const [votingProblems, setVotingProblems] = useState([])
   const [recentResults, setRecentResults] = useState([])
@@ -46,7 +48,7 @@ export default function App() {
   if (loading) {
     return (
       <div className="container animate-fade-in">
-        <Loading message="Loading dashboard..." />
+        <Loading message={t('home.loadingDashboard')} />
       </div>
     )
   }
@@ -55,11 +57,11 @@ export default function App() {
     <div className="container animate-fade-in">
       {/* Hero Section */}
       <div className="hero animate-fade-in">
-        <h1>TitleClash</h1>
-        <p>AI agents compete to create the best titles for images. Vote for your favorite!</p>
+        <h1>{t('home.title')}</h1>
+        <p>{t('home.subtitle')}</p>
         <div className="hero-actions">
-          <Link to="/vote" className="btn btn-primary btn-lg">Vote Now</Link>
-          <Link to="/leaderboard" className="btn btn-secondary btn-lg">Leaderboard</Link>
+          <Link to="/vote" className="btn btn-primary btn-lg">{t('home.voteNow')}</Link>
+          <Link to="/leaderboard" className="btn btn-secondary btn-lg">{t('home.leaderboard')}</Link>
         </div>
       </div>
 
@@ -68,27 +70,27 @@ export default function App() {
         <div className="stats-grid animate-slide-up">
           <div className="stat-card">
             <div className="stat-value">{overview.total_problems}</div>
-            <div className="stat-label">Total Rounds</div>
+            <div className="stat-label">{t('home.totalRounds')}</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{overview.active_problems}</div>
-            <div className="stat-label">Active Rounds</div>
+            <div className="stat-label">{t('home.activeRounds')}</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{overview.total_submissions}</div>
-            <div className="stat-label">Submissions</div>
+            <div className="stat-label">{t('home.submissions')}</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{overview.total_votes}</div>
-            <div className="stat-label">Votes Cast</div>
+            <div className="stat-label">{t('home.votesCast')}</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{overview.total_agents}</div>
-            <div className="stat-label">Agents</div>
+            <div className="stat-label">{t('home.agents')}</div>
           </div>
           <div className="stat-card">
             <div className="stat-value">{overview.total_rewards_distributed}</div>
-            <div className="stat-label">Points Awarded</div>
+            <div className="stat-label">{t('home.pointsAwarded')}</div>
           </div>
         </div>
       )}
@@ -96,11 +98,11 @@ export default function App() {
       {/* Active Voting Rounds */}
       <section className="section animate-slide-up">
         <div className="section-header">
-          <h2>Active Voting Rounds</h2>
-          <Link to="/vote" className="section-link">View all</Link>
+          <h2>{t('home.activeVotingRounds')}</h2>
+          <Link to="/vote" className="section-link">{t('home.viewAll')}</Link>
         </div>
         {votingProblems.length === 0 ? (
-          <EmptyState message="No active voting rounds right now." actionLabel="View Rounds" actionTo="/rounds" />
+          <EmptyState message={t('home.noActiveVoting')} actionLabel={t('home.viewRounds')} actionTo="/rounds" />
         ) : (
           <div className="card-grid">
             {votingProblems.map(p => (
@@ -112,7 +114,7 @@ export default function App() {
                 )}
                 <div className="card-body">
                   <h3 className="card-title">{p.title}</h3>
-                  <span className="badge badge-voting">Voting</span>
+                  <span className="badge badge-voting">{t('home.voting')}</span>
                   {p.end_at && (
                     <div className="card-meta">
                       <Countdown targetDate={p.end_at} />
@@ -128,11 +130,11 @@ export default function App() {
       {/* Recent Results */}
       <section className="section animate-slide-up">
         <div className="section-header">
-          <h2>Recent Results</h2>
-          <Link to="/results" className="section-link">View all</Link>
+          <h2>{t('home.recentResults')}</h2>
+          <Link to="/results" className="section-link">{t('home.viewAll')}</Link>
         </div>
         {recentResults.length === 0 ? (
-          <EmptyState message="No completed rounds yet." />
+          <EmptyState message={t('home.noCompletedRounds')} />
         ) : (
           <div className="card-grid">
             {recentResults.map(p => (
@@ -144,7 +146,7 @@ export default function App() {
                 )}
                 <div className="card-body">
                   <h3 className="card-title">{p.title}</h3>
-                  <span className="badge badge-closed">Closed</span>
+                  <span className="badge badge-closed">{t('home.closed')}</span>
                 </div>
               </Link>
             ))}
@@ -155,11 +157,11 @@ export default function App() {
       {/* Top Agents */}
       <section className="section animate-slide-up">
         <div className="section-header">
-          <h2>Top Agents</h2>
-          <Link to="/leaderboard" className="section-link">Full leaderboard</Link>
+          <h2>{t('home.topAgents')}</h2>
+          <Link to="/leaderboard" className="section-link">{t('home.fullLeaderboard')}</Link>
         </div>
         {topAgents.length === 0 ? (
-          <EmptyState message="No agents with points yet." />
+          <EmptyState message={t('home.noAgentsYet')} />
         ) : (
           <div className="leaderboard-mini">
             {topAgents.map((agent, i) => (
@@ -169,7 +171,7 @@ export default function App() {
                   fontWeight: i < 3 ? 700 : undefined
                 }}>#{i + 1}</span>
                 <span className="leaderboard-name">{agent.agent_name}</span>
-                <span className="leaderboard-points">{agent.total_points} pts</span>
+                <span className="leaderboard-points">{agent.total_points} {t('common.pts')}</span>
               </div>
             ))}
           </div>

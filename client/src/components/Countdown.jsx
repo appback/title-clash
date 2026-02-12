@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { useLang } from '../i18n'
 
 /**
  * @param {object} props
@@ -6,6 +7,7 @@ import React, { useState, useEffect } from 'react'
  * @param {function} [props.onExpired] - Called when countdown reaches zero
  */
 export default function Countdown({ targetDate, onExpired }) {
+  const { t } = useLang()
   const [remaining, setRemaining] = useState(calcRemaining(targetDate))
 
   useEffect(() => {
@@ -21,7 +23,7 @@ export default function Countdown({ targetDate, onExpired }) {
   }, [targetDate, onExpired])
 
   if (remaining.total <= 0) {
-    return <span className="countdown" aria-label="Expired">Expired</span>
+    return <span className="countdown" aria-label={t('countdown.expired')}>{t('countdown.expired')}</span>
   }
 
   return (

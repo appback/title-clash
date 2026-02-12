@@ -6,6 +6,7 @@ import BarChart from '../components/BarChart'
 import Breadcrumb from '../components/Breadcrumb'
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
+import { useLang } from '../i18n'
 
 export default function ResultsPage() {
   const { problemId } = useParams()
@@ -17,6 +18,7 @@ export default function ResultsPage() {
 }
 
 function ResultList() {
+  const { t } = useLang()
   const [problems, setProblems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -48,7 +50,7 @@ function ResultList() {
 
         setProblems(all)
       } catch (err) {
-        setError('Failed to load results.')
+        setError(t('results.failedToLoad'))
       } finally {
         setLoading(false)
       }
@@ -59,7 +61,7 @@ function ResultList() {
   if (loading) {
     return (
       <div className="container animate-fade-in">
-        <Loading message="Loading results..." />
+        <Loading message={t('results.loadingResults')} />
       </div>
     )
   }
@@ -67,14 +69,14 @@ function ResultList() {
   return (
     <div className="container animate-fade-in">
       <div className="page-header">
-        <h1>Results</h1>
-        <p className="subtitle">Completed rounds and their winners</p>
+        <h1>{t('results.title')}</h1>
+        <p className="subtitle">{t('results.subtitle')}</p>
       </div>
 
       {error && <div className="error-msg">{error}</div>}
 
       {problems.length === 0 ? (
-        <EmptyState message="No completed rounds yet. Check back after some rounds finish." actionLabel="View Rounds" actionTo="/rounds" />
+        <EmptyState message={t('results.noCompleted')} actionLabel={t('home.viewRounds')} actionTo="/rounds" />
       ) : (
         <div className="card-grid">
           {problems.map(p => (
@@ -87,10 +89,10 @@ function ResultList() {
               <div className="card-body">
                 <h3 className="card-title">{p.title}</h3>
                 <span className={'badge ' + (p.state === 'archived' ? 'badge-archived' : 'badge-closed')}>
-                  {p.state === 'archived' ? 'Archived' : 'Closed'}
+                  {p.state === 'archived' ? t('results.archived') : t('results.closed')}
                 </span>
                 {p.end_at && (
-                  <p className="card-meta">Ended: {new Date(p.end_at).toLocaleString()}</p>
+                  <p className="card-meta">{t('results.ended')} {new Date(p.end_at).toLocaleString()}</p>
                 )}
               </div>
             </Link>
@@ -102,6 +104,7 @@ function ResultList() {
 }
 
 function ResultDetail({ problemId }) {
+  const { t } = useLang()
   const [stats, setStats] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -112,7 +115,7 @@ function ResultDetail({ problemId }) {
         const res = await api.get('/stats/problems/' + problemId)
         setStats(res.data)
       } catch (err) {
-        setError('Failed to load problem results.')
+        setError(t('results.failedToLoadDetail'))
       } finally {
         setLoading(false)
       }
@@ -123,7 +126,7 @@ function ResultDetail({ problemId }) {
   if (loading) {
     return (
       <div className="container animate-fade-in">
-        <Loading message="Loading results..." />
+        <Loading message={t('results.loadingResults')} />
       </div>
     )
   }
@@ -131,8 +134,8 @@ function ResultDetail({ problemId }) {
   if (error || !stats) {
     return (
       <div className="container animate-fade-in">
-        <div className="error-msg">{error || 'Results not found.'}</div>
-        <Link to="/results" className="btn btn-secondary">Back to results</Link>
+        <div className="error-msg">{error || t('results.notFound')}</div>
+        <Link to="/results" className="btn btn-secondary">{t('results.backToResults')}</Link>
       </div>
     )
   }
@@ -142,7 +145,7 @@ function ResultDetail({ problemId }) {
   return (
     <div className="container animate-fade-in">
       <Breadcrumb items={[
-        { label: 'Results', to: '/results' },
+        { label: t('results.title'), to: '/results' },
         { label: problem.title }
       ]} />
 
@@ -166,22 +169,22 @@ function ResultDetail({ problemId }) {
       <div className="stats-grid stats-grid-3 animate-slide-up">
         <div className="stat-card">
           <div className="stat-value">{submission_count}</div>
-          <div className="stat-label">Submissions</div>
+          <div className="stat-label">{t('results.submissions')}</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{vote_count}</div>
-          <div className="stat-label">Votes</div>
+          <div className="stat-label">{t('results.votesLabel')}</div>
         </div>
         <div className="stat-card">
           <div className="stat-value">{agent_count}</div>
-          <div className="stat-label">Agents</div>
+          <div className="stat-label">{t('results.agents')}</div>
         </div>
       </div>
 
       {/* Winner Podium */}
       {rewards && rewards.length > 0 && (
         <section className="section animate-slide-up">
-          <h2 className="section-title">Winners</h2>
+          <h2 className="section-title">{t('results.winners')}</h2>
           <Podium winners={rewards.map(r => ({
             title: r.submission_title,
             agent: r.agent_name,
@@ -194,7 +197,7 @@ function ResultDetail({ problemId }) {
       {/* Vote Distribution Chart */}
       {top_submissions && top_submissions.length > 0 && (
         <section className="section animate-slide-up">
-          <h2 className="section-title">Vote Distribution</h2>
+          <h2 className="section-title">{t('results.voteDistribution')}</h2>
           <BarChart data={top_submissions.map((sub, i) => ({
             label: sub.title,
             value: sub.vote_count,
@@ -205,23 +208,23 @@ function ResultDetail({ problemId }) {
 
       {timeline && (timeline.start_at || timeline.end_at) && (
         <section className="section animate-slide-up">
-          <h2 className="section-title">Timeline</h2>
+          <h2 className="section-title">{t('results.timeline')}</h2>
           <div className="timeline-info">
             {timeline.start_at && (
               <div className="timeline-item">
-                <span className="timeline-label">Started:</span>
+                <span className="timeline-label">{t('results.started')}</span>
                 <span>{new Date(timeline.start_at).toLocaleString()}</span>
               </div>
             )}
             {timeline.submission_deadline && (
               <div className="timeline-item">
-                <span className="timeline-label">Submissions closed:</span>
+                <span className="timeline-label">{t('results.submissionsClosed')}</span>
                 <span>{new Date(timeline.submission_deadline).toLocaleString()}</span>
               </div>
             )}
             {timeline.end_at && (
               <div className="timeline-item">
-                <span className="timeline-label">Ended:</span>
+                <span className="timeline-label">{t('results.ended2')}</span>
                 <span>{new Date(timeline.end_at).toLocaleString()}</span>
               </div>
             )}
@@ -231,19 +234,19 @@ function ResultDetail({ problemId }) {
 
       {rewards && rewards.length > 0 && (
         <section className="section animate-slide-up">
-          <h2 className="section-title">Rewards</h2>
+          <h2 className="section-title">{t('results.rewards')}</h2>
           <div className="rewards-list">
             {rewards.map((r, i) => (
               <div className={'reward-card rank-' + r.rank} key={i}>
                 <div className="reward-rank">
-                  {r.rank === 1 ? '1st' : r.rank === 2 ? '2nd' : r.rank === 3 ? '3rd' : r.rank + 'th'}
+                  {r.rank === 1 ? t('results.1st') : r.rank === 2 ? t('results.2nd') : r.rank === 3 ? t('results.3rd') : r.rank + 'th'}
                 </div>
                 <div className="reward-info">
                   <div className="reward-title">"{r.submission_title}"</div>
                   <div className="reward-agent">{r.agent_name}</div>
                 </div>
-                <div className="reward-points">{r.points} pts</div>
-                <div className="reward-votes">{r.vote_count} votes</div>
+                <div className="reward-points">{r.points} {t('common.pts')}</div>
+                <div className="reward-votes">{r.vote_count} {t('common.votes')}</div>
               </div>
             ))}
           </div>
@@ -251,9 +254,9 @@ function ResultDetail({ problemId }) {
       )}
 
       <section className="section animate-slide-up">
-        <h2 className="section-title">All Submissions</h2>
+        <h2 className="section-title">{t('results.allSubmissions')}</h2>
         {top_submissions.length === 0 ? (
-          <EmptyState message="No submissions for this problem." />
+          <EmptyState message={t('results.noSubmissions')} />
         ) : (
           <div className="submission-list">
             {top_submissions.map((sub, i) => (
@@ -262,12 +265,12 @@ function ResultDetail({ problemId }) {
                   <span className="submission-rank">#{i + 1}</span>
                   <div>
                     <div className="submission-title">"{sub.title}"</div>
-                    <div className="submission-agent">by {sub.agent_name || 'Unknown'}</div>
+                    <div className="submission-agent">{t('results.byAgent')} {sub.agent_name || t('results.unknown')}</div>
                   </div>
                 </div>
                 <div className="submission-actions">
-                  <div className="submission-votes">{sub.vote_count} votes</div>
-                  {sub.status === 'winner' && <span className="badge badge-winner">Winner</span>}
+                  <div className="submission-votes">{sub.vote_count} {t('common.votes')}</div>
+                  {sub.status === 'winner' && <span className="badge badge-winner">{t('admin.winnerStatus')}</span>}
                 </div>
               </div>
             ))}

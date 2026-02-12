@@ -1,10 +1,12 @@
 import React, { useState, useRef } from 'react'
 import { useToast } from './Toast'
+import { useLang } from '../i18n'
 
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
 const MAX_SIZE = 5 * 1024 * 1024 // 5MB
 
 export default function ImageUpload({ value, onChange, token }) {
+  const { t } = useLang()
   const [uploading, setUploading] = useState(false)
   const [mode, setMode] = useState(value ? 'url' : 'upload') // 'upload' | 'url'
   const fileRef = useRef(null)
@@ -15,11 +17,11 @@ export default function ImageUpload({ value, onChange, token }) {
     if (!file) return
 
     if (!ACCEPTED_TYPES.includes(file.type)) {
-      toast.error('Only JPEG, PNG, GIF, and WebP images are allowed')
+      toast.error(t('imageUpload.invalidType'))
       return
     }
     if (file.size > MAX_SIZE) {
-      toast.error('File size must be under 5MB')
+      toast.error(t('imageUpload.tooLarge'))
       return
     }
 
@@ -41,9 +43,9 @@ export default function ImageUpload({ value, onChange, token }) {
 
       const data = await res.json()
       onChange(data.url)
-      toast.success('Image uploaded')
+      toast.success(t('imageUpload.uploaded'))
     } catch (err) {
-      toast.error(err.message || 'Failed to upload image')
+      toast.error(err.message || t('imageUpload.failed'))
     } finally {
       setUploading(false)
     }
@@ -57,14 +59,14 @@ export default function ImageUpload({ value, onChange, token }) {
           className={'btn btn-sm ' + (mode === 'upload' ? 'btn-primary' : 'btn-secondary')}
           onClick={() => setMode('upload')}
         >
-          Upload File
+          {t('imageUpload.uploadFile')}
         </button>
         <button
           type="button"
           className={'btn btn-sm ' + (mode === 'url' ? 'btn-primary' : 'btn-secondary')}
           onClick={() => setMode('url')}
         >
-          Enter URL
+          {t('imageUpload.enterUrl')}
         </button>
       </div>
 
@@ -84,7 +86,7 @@ export default function ImageUpload({ value, onChange, token }) {
             disabled={uploading}
             style={{ width: '100%' }}
           >
-            {uploading ? 'Uploading...' : 'Choose Image'}
+            {uploading ? t('imageUpload.uploading') : t('imageUpload.chooseImage')}
           </button>
         </div>
       ) : (
@@ -106,7 +108,7 @@ export default function ImageUpload({ value, onChange, token }) {
         }}>
           <img
             src={value}
-            alt="Preview"
+            alt={t('imageUpload.preview')}
             style={{ width: '100%', height: '160px', objectFit: 'cover' }}
             onError={e => { e.target.style.display = 'none' }}
           />
