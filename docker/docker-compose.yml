@@ -1,11 +1,26 @@
-version: '3.8'
-
 services:
-  api:
-    build: ./apps/api
-    working_dir: /app
+  db:
+    image: postgres:15
     environment:
-      - TITLECLASH_DATABASE_URL=postgres://postgres:postgres@db:5432/titleclash
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: titleclash
+    volumes:
+      - titleclash_pgdata:/var/lib/postgresql/data
+      - ../db/migrations:/docker-entrypoint-initdb.d
+    ports:
+      - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: ../apps/api
+    environment:
+      - DATABASE_URL=postgres://postgres:postgres@db:5432/titleclash
       - JWT_SECRET=${JWT_SECRET:-dev-jwt-secret-change-me-in-prod}
       - JWT_EXPIRES_IN=24h
       - STORAGE_MODE=${STORAGE_MODE:-local}
@@ -18,20 +33,18 @@ services:
     ports:
       - "3000:3000"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     volumes:
       - api_uploads:/app/uploads
 
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: titleclash
-    volumes:
-      - titleclash_pgdata:/var/lib/postgresql/data
+  client:
+    build:
+      context: ../client
     ports:
-      - "5432:5432"
+      - "8088:80"
+    depends_on:
+      - api
 
 volumes:
   titleclash_pgdata:
