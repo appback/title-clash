@@ -30,6 +30,7 @@ services:
       - S3_BUCKET=${S3_BUCKET:-}
       - S3_URL_PREFIX=${S3_URL_PREFIX:-}
       - NODE_ENV=${NODE_ENV:-development}
+      - CORS_ORIGINS=http://localhost:8088
     ports:
       - "3000:3000"
     depends_on:

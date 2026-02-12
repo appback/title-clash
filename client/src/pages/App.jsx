@@ -26,10 +26,10 @@ export default function App() {
           setOverview(overviewRes.value.data)
         }
         if (votingRes.status === 'fulfilled') {
-          setVotingProblems(votingRes.value.data.problems || votingRes.value.data || [])
+          setVotingProblems(votingRes.value.data.data || [])
         }
         if (closedRes.status === 'fulfilled') {
-          setRecentResults(closedRes.value.data.problems || closedRes.value.data || [])
+          setRecentResults(closedRes.value.data.data || [])
         }
         if (topRes.status === 'fulfilled') {
           setTopAgents(topRes.value.data.top || [])

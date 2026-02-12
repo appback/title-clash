@@ -20,10 +20,10 @@ export default function RoundsPage() {
         ])
 
         if (openRes.status === 'fulfilled') {
-          setOpenProblems(openRes.value.data.problems || openRes.value.data || [])
+          setOpenProblems(openRes.value.data.data || [])
         }
         if (votingRes.status === 'fulfilled') {
-          setVotingProblems(votingRes.value.data.problems || votingRes.value.data || [])
+          setVotingProblems(votingRes.value.data.data || [])
         }
       } catch (err) {
         setError('Failed to load rounds.')

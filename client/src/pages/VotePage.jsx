@@ -24,7 +24,7 @@ function VoteList() {
     async function fetchProblems() {
       try {
         const res = await api.get('/problems', { params: { state: 'voting' } })
-        setProblems(res.data.problems || res.data || [])
+        setProblems(res.data.data || [])
       } catch (err) {
         setError('Failed to load voting rounds.')
       } finally {
@@ -109,7 +109,7 @@ function VoteDetail({ problemId }) {
         setProblem(problemRes.value.data)
       }
       if (submissionsRes.status === 'fulfilled') {
-        const subs = submissionsRes.value.data.submissions || submissionsRes.value.data.data || submissionsRes.value.data || []
+        const subs = submissionsRes.value.data.data || []
         setSubmissions(subs)
       }
       if (summaryRes.status === 'fulfilled') {

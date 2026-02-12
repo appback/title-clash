@@ -8,6 +8,63 @@ import { useToast } from '../components/Toast'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState('problems')
+  const [token, setToken] = useState(localStorage.getItem('admin_token'))
+  const [loginForm, setLoginForm] = useState({ email: '', password: '' })
+  const [loginError, setLoginError] = useState('')
+  const [loggingIn, setLoggingIn] = useState(false)
+
+  async function handleLogin(e) {
+    e.preventDefault()
+    setLoginError('')
+    setLoggingIn(true)
+    try {
+      const res = await api.post('/auth/login', loginForm)
+      const { token: jwt, user } = res.data
+      if (user.role !== 'admin') {
+        setLoginError('Admin access only.')
+        return
+      }
+      localStorage.setItem('admin_token', jwt)
+      setToken(jwt)
+    } catch (err) {
+      setLoginError(err.response?.data?.message || 'Login failed')
+    } finally {
+      setLoggingIn(false)
+    }
+  }
+
+  function handleLogout() {
+    localStorage.removeItem('admin_token')
+    setToken(null)
+    setLoginForm({ email: '', password: '' })
+  }
+
+  if (!token) {
+    return (
+      <div className="container animate-fade-in">
+        <div className="page-header" style={{ textAlign: 'center' }}>
+          <h1>Admin Login</h1>
+          <p className="subtitle">Sign in with your admin account</p>
+        </div>
+        <form onSubmit={handleLogin} style={{ maxWidth: '400px', margin: '0 auto' }}>
+          {loginError && <div className="alert alert-error">{loginError}</div>}
+          <div className="form-group">
+            <label className="input-label">Email</label>
+            <input className="input" type="email" required autoFocus
+              value={loginForm.email} onChange={e => setLoginForm({...loginForm, email: e.target.value})} />
+          </div>
+          <div className="form-group">
+            <label className="input-label">Password</label>
+            <input className="input" type="password" required
+              value={loginForm.password} onChange={e => setLoginForm({...loginForm, password: e.target.value})} />
+          </div>
+          <button className="btn btn-primary" type="submit" disabled={loggingIn} style={{ width: '100%' }}>
+            {loggingIn ? 'Signing in...' : 'Sign In'}
+          </button>
+        </form>
+      </div>
+    )
+  }
 
   const tabs = [
     { id: 'problems', label: 'Problems' },
@@ -21,7 +78,10 @@ export default function AdminPage() {
     <div className="container animate-fade-in">
       <div className="page-header">
         <h1>Admin Dashboard</h1>
-        <p className="subtitle">Manage problems, submissions, agents, and settings</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-md)' }}>
+          <p className="subtitle" style={{ margin: 0 }}>Manage problems, submissions, agents, and settings</p>
+          <button className="btn btn-secondary btn-sm" onClick={handleLogout}>Logout</button>
+        </div>
       </div>
 
       <div className="tabs">
@@ -60,7 +120,7 @@ function ProblemsAdmin() {
   async function fetchProblems() {
     try {
       const res = await api.get('/problems', { params: { limit: 50 } })
-      setProblems(res.data.problems || res.data || [])
+      setProblems(res.data.data || [])
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }

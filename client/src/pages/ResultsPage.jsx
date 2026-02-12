@@ -31,11 +31,11 @@ function ResultList() {
 
         let all = []
         if (closedRes.status === 'fulfilled') {
-          const data = closedRes.value.data.problems || closedRes.value.data || []
+          const data = closedRes.value.data.data || []
           all = all.concat(data)
         }
         if (archivedRes.status === 'fulfilled') {
-          const data = archivedRes.value.data.problems || archivedRes.value.data || []
+          const data = archivedRes.value.data.data || []
           all = all.concat(data)
         }
 
