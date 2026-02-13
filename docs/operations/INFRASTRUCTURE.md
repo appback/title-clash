@@ -15,8 +15,8 @@
 | Region | ap-northeast-2 (Seoul) |
 | Elastic IP | 43.201.163.136 |
 | Public DNS | ec2-43-201-163-136.ap-northeast-2.compute.amazonaws.com |
-| OS/AMI | Ubuntu (확인 필요) |
-| Key Pair | (AWS 콘솔에서 확인) |
+| OS/AMI | Amazon Linux 2 (ec2-user) |
+| Key Pair | appback.pem |
 | Status | Running |
 
 ### Security Group (Inbound Rules)
@@ -93,7 +93,7 @@ HTTP :80 ──── 301 redirect ──── HTTPS
 ## 6. SSH Access
 
 ```bash
-ssh -i "키페어파일.pem" ubuntu@43.201.163.136
+ssh -i "appback.pem" ec2-user@43.201.163.136
 ```
 
 ---
