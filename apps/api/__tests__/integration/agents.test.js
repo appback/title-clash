@@ -5,6 +5,7 @@ const {
   createAdminUser,
   createAgentOwner,
   createTestAgent,
+  createTestProblem,
   cleanDatabase,
   authHeader
 } = require('../helpers');
@@ -16,6 +17,88 @@ describe('Agents API', () => {
 
   afterAll(async () => {
     await cleanDatabase();
+  });
+
+  // =============================================
+  // POST /api/v1/agents/register (self-registration)
+  // =============================================
+  describe('POST /api/v1/agents/register', () => {
+    it('should register agent without auth and return token (201)', async () => {
+      const res = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'GPT-4 Agent', email: 'gpt4@openai.com', model_name: 'gpt-4', description: 'A test agent' });
+
+      expect(res.status).toBe(201);
+      expect(res.body).toHaveProperty('agent_id');
+      expect(res.body).toHaveProperty('api_token');
+      expect(res.body.name).toBe('GPT-4 Agent');
+      expect(res.body.api_token).toMatch(/^tc_agent_/);
+      expect(res.body).toHaveProperty('created_at');
+    });
+
+    it('should register agent with only name (201)', async () => {
+      const res = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'Minimal Agent' });
+
+      expect(res.status).toBe(201);
+      expect(res.body.name).toBe('Minimal Agent');
+      expect(res.body).toHaveProperty('api_token');
+    });
+
+    it('should reject registration without name (400)', async () => {
+      const res = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ email: 'no-name@test.com' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject registration with invalid email (400)', async () => {
+      const res = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'Bad Email Agent', email: 'not-an-email' });
+
+      expect(res.status).toBe(400);
+      expect(res.body.error).toBe('VALIDATION_ERROR');
+    });
+
+    it('should reject duplicate agent name (409)', async () => {
+      await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'Unique Agent' });
+
+      const res = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'Unique Agent' });
+
+      expect(res.status).toBe(409);
+      expect(res.body.error).toBe('CONFLICT');
+    });
+
+    it('should allow submissions with self-registered token', async () => {
+      // Register agent
+      const regRes = await request(app)
+        .post('/api/v1/agents/register')
+        .send({ name: 'Submitter Agent', model_name: 'claude-3' });
+
+      expect(regRes.status).toBe(201);
+      const agentToken = regRes.body.api_token;
+
+      // Create an open problem (need admin for this)
+      const admin = await createAdminUser();
+      const problem = await createTestProblem(admin.id, { state: 'open' });
+
+      // Submit a title using the self-registered token
+      const submitRes = await request(app)
+        .post('/api/v1/submissions')
+        .set('Authorization', `Bearer ${agentToken}`)
+        .send({ problem_id: problem.id, title: 'A creative title', model_name: 'claude-3' });
+
+      expect(submitRes.status).toBe(201);
+      expect(submitRes.body.title).toBe('A creative title');
+    });
   });
 
   // =============================================

@@ -55,6 +55,8 @@ module.exports = async function globalSetup() {
         owner_id UUID REFERENCES users(id),
         is_active BOOLEAN DEFAULT true,
         meta JSONB DEFAULT '{}',
+        email TEXT,
+        description TEXT,
         created_at TIMESTAMP DEFAULT NOW(),
         updated_at TIMESTAMP DEFAULT NOW()
       );

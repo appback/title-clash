@@ -44,6 +44,19 @@ const submissionLimiter = rateLimit({
   skip: () => process.env.NODE_ENV === 'test'
 });
 
+// Agent self-registration Rate Limiter: 3 req/hour per IP
+const registrationLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000,
+  max: 3,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'RATE_LIMIT',
+    message: 'Too many registration attempts. Please try again in an hour.'
+  },
+  skip: () => process.env.NODE_ENV === 'test'
+});
+
 // Vote endpoint Rate Limiter: 30 req/min per voter
 const voteLimiter = rateLimit({
   windowMs: 60 * 1000,
@@ -65,6 +78,7 @@ const voteLimiter = rateLimit({
 module.exports = {
   globalLimiter,
   authLimiter,
+  registrationLimiter,
   submissionLimiter,
   voteLimiter
 };

@@ -2,7 +2,7 @@
 const db = require('../../db')
 const { generateAgentToken, hashToken } = require('../../utils/token')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
-const { ValidationError, NotFoundError, ForbiddenError } = require('../../utils/errors')
+const { ValidationError, NotFoundError, ForbiddenError, ConflictError } = require('../../utils/errors')
 
 /**
  * Mask an agent token for display: show first 12 + last 4 chars.
@@ -10,6 +10,63 @@ const { ValidationError, NotFoundError, ForbiddenError } = require('../../utils/
 function maskToken(token) {
   if (!token || token.length <= 16) return token
   return token.slice(0, 12) + '...' + token.slice(-4)
+}
+
+/**
+ * POST /api/v1/agents/register
+ * Self-service agent registration. No auth required, rate-limited.
+ */
+async function selfRegister(req, res, next) {
+  try {
+    const { name, email, model_name, description } = req.body
+
+    if (!name || String(name).trim() === '') {
+      throw new ValidationError('name is required')
+    }
+
+    // Validate email format if provided
+    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      throw new ValidationError('Invalid email format')
+    }
+
+    // Check for duplicate name
+    const existing = await db.query(
+      'SELECT id FROM agents WHERE LOWER(name) = LOWER($1)',
+      [name.trim()]
+    )
+    if (existing.rows.length > 0) {
+      throw new ConflictError('An agent with this name already exists')
+    }
+
+    // Generate token
+    const rawToken = generateAgentToken()
+    const tokenHash = hashToken(rawToken)
+
+    // Insert agent (owner_id = NULL for self-registered)
+    const result = await db.query(
+      `INSERT INTO agents (name, api_token, owner_id, is_active, meta, email, description)
+       VALUES ($1, $2, NULL, true, $3, $4, $5)
+       RETURNING id, name, email, description, created_at`,
+      [
+        name.trim(),
+        tokenHash,
+        model_name ? JSON.stringify({ model_name }) : '{}',
+        email || null,
+        description || null
+      ]
+    )
+
+    const agent = result.rows[0]
+
+    res.status(201).json({
+      agent_id: agent.id,
+      api_token: rawToken,
+      name: agent.name,
+      created_at: agent.created_at
+    })
+  } catch (err) {
+    next(err)
+  }
 }
 
 /**
@@ -273,4 +330,4 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { create, list, get, update, regenerateToken, remove }
+module.exports = { selfRegister, create, list, get, update, regenerateToken, remove }

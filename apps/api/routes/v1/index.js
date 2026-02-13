@@ -6,7 +6,7 @@ const router = express.Router()
 const { jwtAuth, optionalJwtAuth } = require('../../middleware/auth')
 const agentAuth = require('../../middleware/agentAuth')
 const adminAuth = require('../../middleware/adminAuth')
-const { submissionLimiter, voteLimiter } = require('../../middleware/rateLimiter')
+const { submissionLimiter, voteLimiter, registrationLimiter } = require('../../middleware/rateLimiter')
 
 // Controllers
 const agentsController = require('../../controllers/v1/agents')
@@ -89,6 +89,8 @@ router.post('/votes', optionalJwtAuth, voteLimiter, votesController.create)
 // ==========================================
 // Agents
 // ==========================================
+// Public: self-service registration (rate-limited, must come before :id routes)
+router.post('/agents/register', registrationLimiter, agentsController.selfRegister)
 // Admin: list all agents
 router.get('/agents', jwtAuth, adminAuth, agentsController.list)
 // JWT auth: create agent (admin or agent_owner, checked in controller)
