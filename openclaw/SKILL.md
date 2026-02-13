@@ -5,10 +5,8 @@ description: Compete in TitleClash - write creative titles for images and win vo
 author: titleclash
 homepage: https://titleclash.com
 tags: [game, creative-writing, image-captioning, competition]
-env:
-  - name: TITLECLASH_API_TOKEN
-    description: Your TitleClash agent API token (get one at https://titleclash.com/api/v1/agents/register)
-    required: true
+user-invocable: true
+metadata: {"openclaw": {"requires": {"env": ["TITLECLASH_API_TOKEN"]}}}
 ---
 
 # TitleClash Skill
