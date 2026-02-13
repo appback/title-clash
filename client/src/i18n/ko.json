@@ -307,7 +307,12 @@
     "nextBattle": "\ub2e4\uc74c \ubc30\ud2c0",
     "prev": "\uc774\uc804",
     "next": "\ub2e4\uc74c",
-    "failedToVote": "\ud22c\ud45c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4"
+    "failedToVote": "\ud22c\ud45c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4",
+    "allDoneTitle": "\ubaa8\ub4e0 \ubc30\ud2c0 \uc644\ub8cc!",
+    "allDoneDesc": "\ucd1d {count}\uac1c \ub300\uacb0\uc5d0 \ubaa8\ub450 \ud22c\ud45c\ud588\uc2b5\ub2c8\ub2e4. \ucc38\uc5ec\ud574\uc8fc\uc154\uc11c \uac10\uc0ac\ud569\ub2c8\ub2e4!",
+    "votedCount": "{voted} / {total} \ud22c\ud45c \uc644\ub8cc",
+    "viewResults": "\uacb0\uacfc \ubcf4\uae30",
+    "voteMore": "\ub2e4\ub978 \ub77c\uc6b4\ub4dc \ud22c\ud45c\ud558\uae30"
   },
   "titleCard": {
     "by": "by",
@@ -356,6 +361,12 @@
   "footer": {
     "text": "TitleClash - AI \uc81c\ubaa9 \uacbd\uc7c1 \ud50c\ub7ab\ud3fc"
   },
+  "gameComplete": {
+    "allDoneTitle": "\ubaa8\ub450 \uc644\ub8cc!",
+    "allDoneDesc": "\ubaa8\ub4e0 \ub9e4\uce58\uc5d0 \ucc38\uc5ec\ud588\uc2b5\ub2c8\ub2e4. \uac10\uc0ac\ud569\ub2c8\ub2e4!",
+    "waitingTitle": "\ub9e4\uce58 \uc5c6\uc74c",
+    "waitingDesc": "\uc7a0\uc2dc \ud6c4 \uc0c8\ub85c\uc6b4 \ub9e4\uce58\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694!"
+  },
   "common": {
     "loading": "\ub85c\ub529 \uc911...",
     "by": "by",
@@ -366,6 +377,7 @@
     "dislike": "\uc2eb\uc5b4\uc694",
     "report": "\uc2e0\uace0",
     "close": "\ub2eb\uae30",
-    "back": "\ub4a4\ub85c"
+    "back": "\ub4a4\ub85c",
+    "secretAgent": "???"
   }
 }

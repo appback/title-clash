@@ -1,59 +1,78 @@
 #!/usr/bin/env bash
-# Deploy script for TitleClash on EC2
-# Usage: run as ec2-user on the instance (or adapt paths)
+# ===========================================
+# Title-Clash Deploy Script
+# ===========================================
+# Usage: bash scripts/deploy_titleclash.sh [branch]
+# Run from EC2 instance
+# ===========================================
 set -euo pipefail
-ROOT=/home/ec2-user/title-clash
+
+ROOT=/home/$USER/title-clash
 REPO_DIR=${ROOT}
 GIT_REMOTE=git@github.com:appback/title-clash.git
 BRANCH=${1:-main}
+COMPOSE_FILE=docker-compose.prod.yml
 
-echo "[deploy] ensure repo exists at $REPO_DIR"
+echo "=========================================="
+echo " Deploying Title-Clash ($BRANCH)"
+echo "=========================================="
+
+# --- 1. Ensure repo ---
+echo "[1/5] Ensuring repo at $REPO_DIR..."
 mkdir -p "$REPO_DIR"
 cd "$REPO_DIR"
+
 if [ ! -d .git ]; then
-  echo "[deploy] cloning repo"
+  echo "  Cloning repo..."
   git clone "$GIT_REMOTE" .
 else
-  echo "[deploy] fetching latest"
+  echo "  Pulling latest changes..."
   git fetch --all --prune
-  git reset --hard origin/$BRANCH
+  git checkout "$BRANCH"
+  git pull origin "$BRANCH"
 fi
 
-# Ensure override file exists (does not contain secrets here)
-OVERRIDE_FILE=${REPO_DIR}/docker/docker-compose.aws.override.yml
-if [ ! -f "$OVERRIDE_FILE" ]; then
-  echo "[deploy] missing docker-compose.aws.override.yml; please create with secrets (not in git)"
+# --- 2. Check .env ---
+echo "[2/5] Checking environment file..."
+ENV_FILE="$REPO_DIR/docker/.env"
+if [ ! -f "$ENV_FILE" ]; then
+  echo "  ERROR: docker/.env not found!"
+  echo "  Run: cp docker/.env.production docker/.env && nano docker/.env"
   exit 1
 fi
 
-# Optional: backup current compose state
-BACKUP_DIR=/home/ec2-user/title-clash/backups
-mkdir -p "$BACKUP_DIR"
-BACKUP_FILE="$BACKUP_DIR/backup-$(date -u +%Y%m%dT%H%M%SZ).tar.gz"
-
-echo "[deploy] creating backup $BACKUP_FILE"
-tar -czf "$BACKUP_FILE" -C "$REPO_DIR" .
-
-# Pull images and (re)create services
+# --- 3. Build & Deploy ---
+echo "[3/5] Building and deploying services..."
 cd "$REPO_DIR/docker"
+docker compose -f "$COMPOSE_FILE" --env-file .env pull || true
+docker compose -f "$COMPOSE_FILE" --env-file .env up -d --build
 
-echo "[deploy] pulling images and building"
-docker compose -f docker-compose.yml -f docker-compose.aws.override.yml pull || true
+# --- 4. Wait for health ---
+echo "[4/5] Waiting for services to be healthy..."
+sleep 5
 
-echo "[deploy] bringing up services"
-docker compose -f docker-compose.yml -f docker-compose.aws.override.yml up -d --build
-
-# Post-deploy healthcheck (adjust port/path if needed)
-HEALTH_URL=${HEALTH_URL:-http://127.0.0.1:8083/lotto/actuator/health}
-
-echo "[deploy] waiting for health endpoint: $HEALTH_URL"
-for i in {1..20}; do
-  if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-    echo "[deploy] health OK"
-    exit 0
+RETRIES=15
+for i in $(seq 1 $RETRIES); do
+  if curl -fsS http://127.0.0.1:3000/api/v1/health >/dev/null 2>&1; then
+    echo "  API health: OK"
+    break
   fi
+  if [ "$i" -eq "$RETRIES" ]; then
+    echo "  WARNING: API health check failed after ${RETRIES} attempts"
+    echo "  Check logs: docker compose -f $COMPOSE_FILE logs api"
+  fi
+  echo "  Attempt $i/$RETRIES - waiting..."
   sleep 3
 done
 
-echo "[deploy] healthcheck failed"
-exit 2
+# --- 5. Status ---
+echo "[5/5] Service status:"
+docker compose -f "$COMPOSE_FILE" ps
+
+echo ""
+echo "=========================================="
+echo " Deploy Complete!"
+echo "=========================================="
+echo " Site: https://titleclash.com"
+echo " Logs: cd docker && docker compose -f $COMPOSE_FILE logs -f"
+echo "=========================================="

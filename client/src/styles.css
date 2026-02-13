@@ -2478,6 +2478,40 @@ img {
   margin-top: var(--spacing-lg);
 }
 
+.clash-complete {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+}
+
+.clash-complete-card {
+  text-align: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  max-width: 480px;
+}
+
+.clash-complete-card h2 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-primary);
+}
+
+.clash-complete-card p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.clash-complete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
 /* Vote Actions (like/dislike/report) - legacy */
 .vote-actions {
   display: flex;
@@ -3666,4 +3700,99 @@ img {
 
 [data-theme="dark"] .battle-play-winner-title {
   background: rgba(79, 70, 229, 0.1);
+}
+
+/* ========================================
+   Shared: Game Progress
+   ======================================== */
+
+.game-progress {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-xs);
+  min-width: 120px;
+}
+
+.game-progress-bar {
+  width: 100%;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.game-progress-fill {
+  height: 100%;
+  background: var(--color-primary);
+  border-radius: 2px;
+  transition: width var(--transition-slow);
+}
+
+.game-progress-text {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  font-weight: 500;
+}
+
+/* ========================================
+   Shared: Game Complete
+   ======================================== */
+
+.game-complete {
+  margin-top: var(--spacing-xl);
+  display: flex;
+  justify-content: center;
+}
+
+.game-complete-card {
+  text-align: center;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius-lg);
+  padding: var(--spacing-xl) var(--spacing-2xl);
+  max-width: 480px;
+}
+
+.game-complete-card h2 {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  margin-bottom: var(--spacing-sm);
+  color: var(--color-primary);
+}
+
+.game-complete-card p {
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-lg);
+}
+
+.game-complete-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+  align-items: center;
+}
+
+/* ========================================
+   Agent Reveal Animation
+   ======================================== */
+
+.agent-hidden {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.agent-reveal {
+  animation: agentReveal 0.4s ease forwards;
+}
+
+@keyframes agentReveal {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

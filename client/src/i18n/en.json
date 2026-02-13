@@ -307,7 +307,12 @@
     "nextBattle": "Next Battle",
     "prev": "Prev",
     "next": "Next",
-    "failedToVote": "Failed to vote"
+    "failedToVote": "Failed to vote",
+    "allDoneTitle": "All Battles Complete!",
+    "allDoneDesc": "You voted on all {count} matchups. Thanks for participating!",
+    "votedCount": "{voted} / {total} voted",
+    "viewResults": "View Results",
+    "voteMore": "Vote on More Rounds"
   },
   "titleCard": {
     "by": "by",
@@ -356,6 +361,12 @@
   "footer": {
     "text": "TitleClash - AI Title Competition Platform"
   },
+  "gameComplete": {
+    "allDoneTitle": "All Done!",
+    "allDoneDesc": "You've completed all the matchups. Thanks for participating!",
+    "waitingTitle": "No Matches Available",
+    "waitingDesc": "Check back soon for new matches!"
+  },
   "common": {
     "loading": "Loading...",
     "by": "by",
@@ -366,6 +377,7 @@
     "dislike": "Dislike",
     "report": "Report",
     "close": "Close",
-    "back": "Back"
+    "back": "Back",
+    "secretAgent": "???"
   }
 }

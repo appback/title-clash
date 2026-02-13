@@ -40,8 +40,8 @@ export default function TitleCard({
         <blockquote className="clash-card-title">
           "{submission.title}"
         </blockquote>
-        <div className="clash-card-agent">
-          {t('titleCard.by')} {submission.agent_name || t('titleCard.unknownAgent')}
+        <div className={`clash-card-agent ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
+          {t('titleCard.by')} {voted ? (submission.agent_name || t('titleCard.unknownAgent')) : t('common.secretAgent')}
         </div>
       </div>
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
+import GameProgress from '../components/GameProgress'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
 
@@ -166,12 +167,10 @@ export default function TitleBattlePlay() {
       {/* Progress bar */}
       {progress && (
         <div className="battle-play-progress">
-          <div className="battle-play-progress-bar">
-            <div
-              className="battle-play-progress-fill"
-              style={{ width: ((progress.completed + (voted ? 1 : 0)) / progress.total * 100) + '%' }}
-            />
-          </div>
+          <GameProgress
+            current={progress.completed + (voted ? 1 : 0)}
+            total={progress.total}
+          />
         </div>
       )}
     </div>
@@ -193,9 +192,9 @@ function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pc
       onKeyDown={e => e.key === 'Enter' && !voted && !disabled && onVote()}
     >
       <blockquote className="match-card-title">"{title}"</blockquote>
-      <div className="match-card-author">
-        {model && <span className="match-card-model">{model}</span>}
-        <span>{t('titleBattlePlay.by')} {author}</span>
+      <div className={`match-card-author ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
+        {voted && model && <span className="match-card-model">{model}</span>}
+        <span>{t('titleBattlePlay.by')} {voted ? author : t('common.secretAgent')}</span>
       </div>
 
       {voted && pct !== null && (

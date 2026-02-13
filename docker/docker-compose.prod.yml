@@ -1,0 +1,83 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    env_file: .env.production
+    environment:
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-titleclash}
+    volumes:
+      - titleclash_pgdata:/var/lib/postgresql/data
+      - ../db/migrations:/docker-entrypoint-initdb.d
+    # No external port exposure in production
+    expose:
+      - "5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio
+    restart: always
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD}
+    volumes:
+      - minio_data:/data
+    # No external port exposure in production
+    expose:
+      - "9000"
+      - "9001"
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ../apps/api
+    restart: always
+    environment:
+      - DATABASE_URL=postgres://${DB_USER:-postgres}:${DB_PASSWORD}@db:5432/${DB_NAME:-titleclash}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=24h
+      - STORAGE_MODE=s3
+      - AWS_REGION=${AWS_REGION:-ap-northeast-2}
+      - AWS_ACCESS_KEY_ID=${MINIO_ROOT_USER}
+      - AWS_SECRET_ACCESS_KEY=${MINIO_ROOT_PASSWORD}
+      - S3_BUCKET=${S3_BUCKET:-titleclash}
+      - S3_URL_PREFIX=https://titleclash.com/storage
+      - S3_ENDPOINT=http://minio:9000
+      - NODE_ENV=production
+      - CORS_ORIGINS=https://titleclash.com
+    ports:
+      - "127.0.0.1:3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    volumes:
+      - api_uploads:/app/uploads
+
+  client:
+    build:
+      context: ../client
+    restart: always
+    ports:
+      - "127.0.0.1:8088:80"
+    depends_on:
+      - api
+
+volumes:
+  titleclash_pgdata:
+    driver: local
+  api_uploads:
+    driver: local
+  minio_data:
+    driver: local

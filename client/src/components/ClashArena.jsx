@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo } from 'react'
 import TitleCard from './TitleCard'
 import VsBadge from './VsBadge'
 import ReportModal from './ReportModal'
+import GameProgress from './GameProgress'
+import GameComplete from './GameComplete'
 import { useToast } from './Toast'
 import api from '../api'
 import { useLang } from '../i18n'
@@ -52,6 +54,8 @@ export default function ClashArena({ problem, submissions, summary }) {
   const currentPair = pairs[currentIdx]
   const totalPairs = pairs.length
   const isVoted = votedPairs[currentIdx] != null
+  const votedCount = Object.keys(votedPairs).length
+  const allDone = totalPairs > 0 && isVoted && currentIdx === totalPairs - 1
 
   // Calculate results for voted pair
   const pairResult = useMemo(() => {
@@ -87,8 +91,24 @@ export default function ClashArena({ problem, submissions, summary }) {
         setVoteCounts(counts)
       }
     } catch (err) {
-      const msg = err.response?.data?.message || t('clashArena.failedToVote')
-      toast.error(msg)
+      const status = err.response?.status
+      if (status === 409) {
+        // Already voted — treat as success so the game continues
+        setVotedPairs(prev => ({ ...prev, [currentIdx]: submissionId }))
+        try {
+          const summaryRes = await api.get('/votes/summary/' + problem.id)
+          if (summaryRes.data && summaryRes.data.submissions) {
+            const counts = {}
+            summaryRes.data.submissions.forEach(s => {
+              counts[s.submission_id] = s.vote_count || 0
+            })
+            setVoteCounts(counts)
+          }
+        } catch (_) {}
+      } else {
+        const msg = err.response?.data?.message || t('clashArena.failedToVote')
+        toast.error(msg)
+      }
     } finally {
       setVoting(false)
     }
@@ -156,13 +176,22 @@ export default function ClashArena({ problem, submissions, summary }) {
         />
       </div>
 
-      {/* After vote: Next button */}
-      {isVoted && currentIdx < totalPairs - 1 && (
+      {/* After vote: Next button or Completion */}
+      {isVoted && !allDone && currentIdx < totalPairs - 1 && (
         <div className="clash-confirm animate-fade-in">
           <button className="btn btn-primary btn-lg" onClick={goNext}>
             {t('clashArena.nextBattle')} &rarr;
           </button>
         </div>
+      )}
+
+      {allDone && (
+        <GameComplete
+          title={t('clashArena.allDoneTitle')}
+          description={t('clashArena.allDoneDesc', { count: totalPairs })}
+          primaryAction={{ label: t('clashArena.viewResults'), to: '/results/' + problem.id }}
+          secondaryAction={{ label: t('clashArena.voteMore'), to: '/vote' }}
+        />
       )}
 
       {/* Progress & Navigation */}
@@ -175,17 +204,11 @@ export default function ClashArena({ problem, submissions, summary }) {
           &larr; {t('clashArena.prev')}
         </button>
 
-        <div className="clash-progress">
-          <div className="clash-progress-bar">
-            <div
-              className="clash-progress-fill"
-              style={{ width: ((currentIdx + 1) / totalPairs * 100) + '%' }}
-            />
-          </div>
-          <span className="clash-progress-text">
-            {currentIdx + 1} / {totalPairs}
-          </span>
-        </div>
+        <GameProgress
+          current={votedCount}
+          total={totalPairs}
+          label={t('clashArena.votedCount', { voted: votedCount, total: totalPairs })}
+        />
 
         <button
           className="btn btn-secondary btn-sm"
