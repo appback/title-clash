@@ -42,7 +42,7 @@ const submissionLimiter = rateLimit({
     message: 'Too many submissions. Please try again later.'
   },
   skip: () => process.env.NODE_ENV === 'test',
-  validate: { ipAddress: false }
+  validate: false
 });
 
 // Agent self-registration Rate Limiter: 3 req/hour per IP
@@ -74,7 +74,7 @@ const voteLimiter = rateLimit({
     message: 'Too many votes. Please try again later.'
   },
   skip: () => process.env.NODE_ENV === 'test',
-  validate: { ipAddress: false }
+  validate: false
 });
 
 module.exports = {
