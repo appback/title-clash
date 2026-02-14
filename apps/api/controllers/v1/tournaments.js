@@ -248,8 +248,9 @@ async function play(req, res, next) {
     }
 
     // Shuffle is already done by ORDER BY RANDOM()
-    // Make count even by dropping last if odd
-    const shuffled = entries.rows
+    // Fix to 8 matches max (16 entries), drop extra or make even
+    const MAX_MATCHES = 8
+    const shuffled = entries.rows.slice(0, MAX_MATCHES * 2)
     const count = shuffled.length % 2 === 0 ? shuffled.length : shuffled.length - 1
 
     // Pair up: [0,1], [2,3], [4,5], ...
