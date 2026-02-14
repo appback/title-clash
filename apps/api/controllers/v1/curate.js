@@ -64,7 +64,7 @@ async function create(req, res, next) {
         [
           title.trim(),
           stored.url,
-          description || source_url ? [description, source_url].filter(Boolean).join('\n\nSource: ') : null,
+          (description || source_url) ? [description, source_url ? `Source: ${source_url}` : null].filter(Boolean).join('\n\n') : null,
           req.agent.id
         ]
       )
