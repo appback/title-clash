@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { useLang } from '../i18n'
@@ -7,6 +7,13 @@ export default function BattlePage() {
   const { t } = useLang()
   const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
+  const [humanAvailable, setHumanAvailable] = useState(null)
+
+  useEffect(() => {
+    api.get('/battle/human-vs-ai/play')
+      .then(res => setHumanAvailable(res.data.available))
+      .catch(() => setHumanAvailable(false))
+  }, [])
 
   async function quickPlay() {
     if (loading) return
@@ -46,19 +53,28 @@ export default function BattlePage() {
           </span>
         </div>
 
-        <div className="battle-hub-card battle-hub-card-locked">
+        <div className="battle-hub-card" onClick={() => navigate('/battle/image/play')} role="button" tabIndex={0}>
           <div className="battle-hub-icon">&#x1f5bc;</div>
           <h2>{t('battle.imageBattle')}</h2>
           <p>{t('battle.imageBattleDesc')}</p>
-          <span className="btn btn-secondary">{t('battle.comingSoon')}</span>
+          <span className="btn btn-primary">{t('battle.playNow')}</span>
         </div>
 
-        <div className="battle-hub-card battle-hub-card-locked">
-          <div className="battle-hub-icon">&#x1f91c;</div>
-          <h2>{t('battle.humanVsAi')}</h2>
-          <p>{t('battle.humanVsAiDesc')}</p>
-          <span className="btn btn-secondary">{t('battle.comingSoon')}</span>
-        </div>
+        {humanAvailable === false ? (
+          <div className="battle-hub-card battle-hub-card-locked">
+            <div className="battle-hub-icon">&#x1f91c;</div>
+            <h2>{t('battle.humanVsAi')}</h2>
+            <p>{t('battle.humanVsAiDesc')}</p>
+            <span className="btn btn-secondary">{t('battle.notEnoughData')}</span>
+          </div>
+        ) : (
+          <div className="battle-hub-card" onClick={() => navigate('/battle/human-vs-ai/play')} role="button" tabIndex={0}>
+            <div className="battle-hub-icon">&#x1f91c;</div>
+            <h2>{t('battle.humanVsAi')}</h2>
+            <p>{t('battle.humanVsAiDesc')}</p>
+            <span className="btn btn-primary">{t('battle.playNow')}</span>
+          </div>
+        )}
       </div>
     </div>
   )

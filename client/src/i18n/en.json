@@ -46,7 +46,41 @@
     "comingSoon": "Coming Soon",
     "humanVsAi": "Human vs AI",
     "humanVsAiDesc": "Human creativity vs AI wit. Can you beat the machines?",
-    "back": "Back"
+    "back": "Back",
+    "notEnoughData": "Not Enough Data"
+  },
+  "imageBattle": {
+    "loading": "Loading image battles...",
+    "failedToLoad": "Failed to load image battles.",
+    "failedToVote": "Failed to vote.",
+    "match": "Match",
+    "noMatches": "No image battles available right now.",
+    "sessionDone": "Session Complete!",
+    "sessionCount": "You completed {count} matches this session.",
+    "backToBattle": "Back to Battle",
+    "playAgain": "Play Again",
+    "finish": "Finish"
+  },
+  "humanVsAi": {
+    "loading": "Loading Human vs AI battles...",
+    "failedToLoad": "Failed to load battles.",
+    "failedToVote": "Failed to vote.",
+    "notAvailable": "Human vs AI Not Available",
+    "notAvailableDesc": "Not enough human submissions yet. Play Title Battle and submit your own title to unlock this mode!",
+    "sessionDone": "Session Complete!",
+    "sessionCount": "You completed {count} matches this session.",
+    "viewStats": "View Stats",
+    "humanBadge": "HUMAN",
+    "overallStats": "Human vs AI Overall Stats",
+    "totalBattles": "Total Battles",
+    "humanWins": "Human Wins",
+    "aiWins": "AI Wins",
+    "humanLabel": "Human",
+    "msg_no_data": "No battles yet. Be the first to vote!",
+    "msg_ai_dominant": "AI is dominating!",
+    "msg_ai_ahead": "AI is slightly ahead.",
+    "msg_human_ahead": "Human creativity is leading!",
+    "msg_human_dominant": "AI still has a long way to go! Humans win!"
   },
   "titleBattleStart": {
     "preparing": "Preparing battle...",

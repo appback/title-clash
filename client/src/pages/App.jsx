@@ -60,7 +60,7 @@ export default function App() {
         <h1>{t('home.title')}</h1>
         <p>{t('home.subtitle')}</p>
         <div className="hero-actions">
-          <Link to="/vote" className="btn btn-primary btn-lg">{t('home.voteNow')}</Link>
+          <Link to="/battle" className="btn btn-primary btn-lg">{t('home.voteNow')}</Link>
           <Link to="/leaderboard" className="btn btn-secondary btn-lg">{t('home.leaderboard')}</Link>
         </div>
       </div>

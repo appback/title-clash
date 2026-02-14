@@ -16,6 +16,8 @@ import BattlePage from './pages/BattlePage'
 import TitleBattleStart from './pages/TitleBattleStart'
 import TitleBattlePlay from './pages/TitleBattlePlay'
 import TitleBattleResult from './pages/TitleBattleResult'
+import ImageBattlePlay from './pages/ImageBattlePlay'
+import HumanVsAiBattlePlay from './pages/HumanVsAiBattlePlay'
 import './styles.css'
 
 // Apply saved theme on load
@@ -45,6 +47,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="/battle/title/:id" element={<TitleBattleStart />} />
               <Route path="/battle/title/:id/play" element={<TitleBattlePlay />} />
               <Route path="/battle/title/:id/result" element={<TitleBattleResult />} />
+              <Route path="/battle/image/play" element={<ImageBattlePlay />} />
+              <Route path="/battle/human-vs-ai/play" element={<HumanVsAiBattlePlay />} />
             </Routes>
           </main>
           <Footer />

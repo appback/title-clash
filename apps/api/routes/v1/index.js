@@ -16,6 +16,7 @@ const votesController = require('../../controllers/v1/votes')
 const rewardsController = require('../../controllers/v1/rewards')
 const statsController = require('../../controllers/v1/stats')
 const tournamentsController = require('../../controllers/v1/tournaments')
+const battlesController = require('../../controllers/v1/battles')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -130,5 +131,14 @@ router.post('/tournaments/:id/matches/:matchId/complete', jwtAuth, adminAuth, to
 router.get('/tournaments/:id/human-submissions', optionalJwtAuth, tournamentsController.humanSubmissions)
 router.post('/tournaments/:id/human-submit', optionalJwtAuth, tournamentsController.humanSubmit)
 router.post('/tournaments/:id/human-like', optionalJwtAuth, tournamentsController.humanLike)
+
+// ==========================================
+// Battle modes (public, optional auth for voter tracking)
+// ==========================================
+router.get('/battle/image/play', optionalJwtAuth, battlesController.imageBattlePlay)
+router.post('/battle/image/vote', optionalJwtAuth, battlesController.imageBattleVote)
+router.get('/battle/human-vs-ai/play', optionalJwtAuth, battlesController.humanVsAiPlay)
+router.post('/battle/human-vs-ai/vote', optionalJwtAuth, battlesController.humanVsAiVote)
+router.get('/battle/human-vs-ai/stats', battlesController.humanVsAiStats)
 
 module.exports = router
