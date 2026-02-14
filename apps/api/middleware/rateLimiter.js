@@ -77,10 +77,26 @@ const voteLimiter = rateLimit({
   validate: false
 });
 
+// Curate endpoint Rate Limiter: 1 per 10 minutes per agent
+const curateLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 1,
+  keyGenerator: (req) => req.agent ? req.agent.id : req.ip,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    error: 'RATE_LIMIT',
+    message: 'Curate limit: 1 per 10 minutes.'
+  },
+  skip: () => process.env.NODE_ENV === 'test',
+  validate: false
+});
+
 module.exports = {
   globalLimiter,
   authLimiter,
   registrationLimiter,
   submissionLimiter,
-  voteLimiter
+  voteLimiter,
+  curateLimiter
 };

@@ -6,7 +6,7 @@ const router = express.Router()
 const { jwtAuth, optionalJwtAuth } = require('../../middleware/auth')
 const agentAuth = require('../../middleware/agentAuth')
 const adminAuth = require('../../middleware/adminAuth')
-const { submissionLimiter, voteLimiter, registrationLimiter } = require('../../middleware/rateLimiter')
+const { submissionLimiter, voteLimiter, registrationLimiter, curateLimiter } = require('../../middleware/rateLimiter')
 
 // Controllers
 const agentsController = require('../../controllers/v1/agents')
@@ -17,6 +17,7 @@ const rewardsController = require('../../controllers/v1/rewards')
 const statsController = require('../../controllers/v1/stats')
 const tournamentsController = require('../../controllers/v1/tournaments')
 const battlesController = require('../../controllers/v1/battles')
+const curateController = require('../../controllers/v1/curate')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -131,6 +132,11 @@ router.post('/tournaments/:id/matches/:matchId/complete', jwtAuth, adminAuth, to
 router.get('/tournaments/:id/human-submissions', optionalJwtAuth, tournamentsController.humanSubmissions)
 router.post('/tournaments/:id/human-submit', optionalJwtAuth, tournamentsController.humanSubmit)
 router.post('/tournaments/:id/human-like', optionalJwtAuth, tournamentsController.humanLike)
+
+// ==========================================
+// Agent curation (agent auth + curator permission)
+// ==========================================
+router.post('/curate', agentAuth, curateLimiter, curateController.create)
 
 // ==========================================
 // Battle modes (public, optional auth for voter tracking)

@@ -1,14 +1,11 @@
 // Upload controller: image upload via multer + sharp
 const multer = require('multer')
-const path = require('path')
-const sharp = require('sharp')
 const { uploadImage } = require('../../services/storage')
+const { processImage } = require('../../utils/imageProcessor')
 const { ValidationError } = require('../../utils/errors')
 
 const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif']
 const MAX_SIZE = 10 * 1024 * 1024 // 10MB (원본 허용, 리사이즈 후 줄어듦)
-const TARGET_WIDTH = 800
-const MAX_DIMENSION = 2000
 
 // Multer config: memory storage (buffer in memory before processing)
 const upload = multer({
@@ -22,48 +19,6 @@ const upload = multer({
     cb(null, true)
   }
 }).single('image')
-
-/**
- * Process image: resize to 800px width, cap at 2000x2000, compress.
- * - Width > 800px → resize to 800px (aspect ratio maintained)
- * - Either dimension > 2000px → fit within 2000x2000
- * - Output as WebP (best compression) with 85% quality
- */
-async function processImage(buffer) {
-  const metadata = await sharp(buffer).metadata()
-  const { width, height } = metadata
-
-  let pipeline = sharp(buffer).rotate() // auto-rotate by EXIF
-
-  if (width > MAX_DIMENSION || height > MAX_DIMENSION) {
-    // First cap within 2000x2000
-    pipeline = pipeline.resize(MAX_DIMENSION, MAX_DIMENSION, {
-      fit: 'inside',
-      withoutEnlargement: true
-    })
-  }
-
-  if (width > TARGET_WIDTH) {
-    // Resize to 800px width
-    pipeline = pipeline.resize(TARGET_WIDTH, null, {
-      fit: 'inside',
-      withoutEnlargement: true
-    })
-  }
-
-  const processed = await pipeline
-    .webp({ quality: 85 })
-    .toBuffer({ resolveWithObject: true })
-
-  return {
-    buffer: processed.data,
-    width: processed.info.width,
-    height: processed.info.height,
-    size: processed.data.length,
-    originalWidth: width,
-    originalHeight: height
-  }
-}
 
 /**
  * POST /api/v1/upload/image
