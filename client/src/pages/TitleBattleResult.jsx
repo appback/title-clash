@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useLocation } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
 import { useToast } from '../components/Toast'
@@ -9,10 +9,9 @@ import TranslatedText from '../components/TranslatedText'
 export default function TitleBattleResult() {
   const { t } = useLang()
   const { id } = useParams()
+  const location = useLocation()
   const toast = useToast()
   const [data, setData] = useState(null)
-  const [bracket, setBracket] = useState(null)
-  const [showBracket, setShowBracket] = useState(false)
   const [loading, setLoading] = useState(true)
 
   // Human submission state
@@ -22,15 +21,12 @@ export default function TitleBattleResult() {
   const [humanName, setHumanName] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
+  // Get playedEntryIds from navigation state (if coming from play)
+  const playedEntryIds = location.state?.playedEntryIds || null
+
   useEffect(() => {
-    Promise.all([
-      api.get(`/tournaments/${id}/results`),
-      api.get(`/tournaments/${id}/bracket`)
-    ])
-      .then(([resultsRes, bracketRes]) => {
-        setData(resultsRes.data)
-        setBracket(bracketRes.data)
-      })
+    api.get(`/tournaments/${id}/results`)
+      .then(res => setData(res.data))
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [id])
@@ -81,7 +77,13 @@ export default function TitleBattleResult() {
   if (!data) return <div className="container"><p>{t('titleBattleResult.resultsNotAvailable')}</p></div>
 
   const { tournament, rankings, agent_stats, total_votes, participant_count } = data
-  const winner = rankings.find(r => r.final_rank === 1)
+
+  // Filter rankings to show only played entries if available
+  const displayRankings = playedEntryIds
+    ? rankings.filter(r => playedEntryIds.includes(r.id))
+    : rankings
+
+  const winner = displayRankings.length > 0 ? displayRankings[0] : null
   const medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49']
 
   return (
@@ -107,13 +109,17 @@ export default function TitleBattleResult() {
               {winner.model_name && <span className="badge badge-blue">{winner.model_name}</span>}
               {t('titleBattleResult.by')} {winner.author_name}
             </span>
+            <span className="result-winner-inline-votes">
+              {winner.total_votes_received} {t('common.votes')}
+            </span>
           </div>
         )}
       </div>
 
-      {/* Human Challenge Button */}
-      {!showHuman && (
+      {/* Human Challenge CTA */}
+      {!showHuman && winner && (
         <div className="human-challenge-cta">
+          <p className="human-challenge-text">{t('titleBattleResult.canYouBeat')}</p>
           <button className="btn btn-primary btn-lg" onClick={handleOpenHuman}>
             {t('titleBattleResult.challengeNow')}
           </button>
@@ -195,12 +201,14 @@ export default function TitleBattleResult() {
 
       {/* Rankings */}
       <section className="result-section">
-        <h2 className="section-title">{t('titleBattleResult.aiRankings')}</h2>
+        <h2 className="section-title">
+          {playedEntryIds ? t('titleBattleResult.sessionRankings') : t('titleBattleResult.aiRankings')}
+        </h2>
         <div className="result-rankings">
-          {rankings.map((entry, i) => (
+          {displayRankings.map((entry, i) => (
             <div key={entry.id} className={'result-rank-row' + (i < 3 ? ' result-rank-top' : '')}>
               <span className="result-rank-num">
-                {entry.final_rank ? (medals[entry.final_rank] || `${entry.final_rank}.`) : `${i + 1}.`}
+                {i < 3 ? medals[i + 1] : `${i + 1}.`}
               </span>
               <div className="result-rank-info">
                 <span className="result-rank-title">"{entry.title}"</span>
@@ -224,7 +232,7 @@ export default function TitleBattleResult() {
             {agent_stats.map((a, i) => (
               <div key={i} className="result-agent-row">
                 <span className="result-agent-name">{a.model_name || a.author_name}</span>
-                <span className="result-agent-record">{a.wins}W {a.losses}L</span>
+                <span className="result-agent-record">{a.entry_count} {t('titleBattleResult.entries')}</span>
                 <span className="result-agent-votes">{a.total_votes} {t('common.votes')}</span>
               </div>
             ))}
@@ -248,55 +256,10 @@ export default function TitleBattleResult() {
         </div>
       </div>
 
-      {/* Bracket toggle */}
-      <div className="result-bracket-toggle">
-        <button className="btn btn-secondary" onClick={() => setShowBracket(!showBracket)}>
-          {showBracket ? t('titleBattleResult.hideBracket') : t('titleBattleResult.viewBracket')}
-        </button>
-      </div>
-
-      {showBracket && bracket && <BracketView rounds={bracket.rounds} t={t} />}
-
       <div className="result-actions">
-        <Link to="/battle" className="btn btn-primary">{t('titleBattleResult.playAnother')}</Link>
+        <Link to={`/battle/title/${id}/play`} className="btn btn-primary">{t('titleBattleResult.playAgain')}</Link>
+        <Link to="/battle" className="btn btn-secondary">{t('titleBattleResult.playAnother')}</Link>
       </div>
-    </div>
-  )
-}
-
-function BracketView({ rounds, t }) {
-  const roundOrder = ['round_of_64', 'round_of_32', 'round_of_16', 'quarter', 'semi', 'final']
-  const roundLabels = {
-    round_of_64: t('titleBattlePlay.roundOf64'),
-    round_of_32: t('titleBattlePlay.roundOf32'),
-    round_of_16: t('titleBattlePlay.roundOf16'),
-    quarter: t('titleBattlePlay.roundQuarter'),
-    semi: t('titleBattlePlay.roundSemi'),
-    final: t('titleBattlePlay.roundFinal')
-  }
-  const activeRounds = roundOrder.filter(r => rounds[r] && rounds[r].length > 0)
-
-  return (
-    <div className="bracket-view animate-fade-in">
-      {activeRounds.map(roundKey => (
-        <div key={roundKey} className="bracket-round">
-          <h3 className="bracket-round-title">{roundLabels[roundKey] || roundKey}</h3>
-          <div className="bracket-matches">
-            {rounds[roundKey].map(m => (
-              <div key={m.id} className={'bracket-match' + (m.status === 'completed' ? ' bracket-match-done' : '')}>
-                <div className={'bracket-entry' + (m.winner_id === m.entry_a_id ? ' bracket-entry-winner' : '')}>
-                  <span className="bracket-entry-title">{m.entry_a_title || t('titleBattleResult.bye')}</span>
-                  <span className="bracket-entry-votes">{m.vote_count_a}</span>
-                </div>
-                <div className={'bracket-entry' + (m.winner_id === m.entry_b_id ? ' bracket-entry-winner' : '')}>
-                  <span className="bracket-entry-title">{m.entry_b_title || t('titleBattleResult.bye')}</span>
-                  <span className="bracket-entry-votes">{m.vote_count_b}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      ))}
     </div>
   )
 }

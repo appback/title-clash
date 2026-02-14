@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
@@ -14,49 +14,44 @@ export default function TitleBattlePlay() {
   const toast = useToast()
 
   const [tournament, setTournament] = useState(null)
-  const [match, setMatch] = useState(null)
-  const [progress, setProgress] = useState(null)
-  const [status, setStatus] = useState('loading')
+  const [matches, setMatches] = useState([])
+  const [currentIndex, setCurrentIndex] = useState(0)
   const [voted, setVoted] = useState(false)
   const [votedEntry, setVotedEntry] = useState(null)
-  const [voteResult, setVoteResult] = useState(null)
+  const [votedTotal, setVotedTotal] = useState(null)
   const [voting, setVoting] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [sessionResults, setSessionResults] = useState([])
 
-  const fetchMatch = useCallback(() => {
-    api.get(`/tournaments/${id}/current-match`)
+  useEffect(() => {
+    api.get(`/tournaments/${id}/play`)
       .then(res => {
         const data = res.data
-        setMatch(data.match)
-        setProgress(data.progress)
-        setStatus(data.status)
-        setVoted(false)
-        setVotedEntry(null)
-        setVoteResult(null)
+        setTournament(data.tournament)
+        setMatches(data.matches)
       })
-      .catch(() => setStatus('error'))
+      .catch(() => toast.error('Failed to load battle'))
       .finally(() => setLoading(false))
   }, [id])
 
-  useEffect(() => {
-    api.get(`/tournaments/${id}`)
-      .then(res => setTournament(res.data))
-      .catch(() => {})
-    fetchMatch()
-  }, [id, fetchMatch])
+  const match = matches[currentIndex] || null
+  const totalMatches = matches.length
+  const isLastMatch = currentIndex === totalMatches - 1
 
   async function handleVote(entryId) {
     if (voted || voting || !match) return
     setVoting(true)
 
     try {
-      const res = await api.post(`/tournaments/${id}/vote`, {
-        match_id: match.id,
-        entry_id: entryId
-      })
+      const res = await api.post(`/tournaments/${id}/vote`, { entry_id: entryId })
       setVoted(true)
       setVotedEntry(entryId)
-      setVoteResult(res.data)
+      setVotedTotal(res.data.total_votes)
+      setSessionResults(prev => [...prev, {
+        winner_id: entryId,
+        entry_a: match.entry_a,
+        entry_b: match.entry_b
+      }])
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to vote'
       toast.error(msg)
@@ -66,45 +61,48 @@ export default function TitleBattlePlay() {
   }
 
   function handleNext() {
-    setLoading(true)
-    fetchMatch()
+    if (isLastMatch) {
+      // Collect all entry IDs that participated in this session
+      const playedEntryIds = []
+      sessionResults.forEach(r => {
+        if (!playedEntryIds.includes(r.entry_a.id)) playedEntryIds.push(r.entry_a.id)
+        if (!playedEntryIds.includes(r.entry_b.id)) playedEntryIds.push(r.entry_b.id)
+      })
+      // Include last match entries
+      if (match) {
+        if (!playedEntryIds.includes(match.entry_a.id)) playedEntryIds.push(match.entry_a.id)
+        if (!playedEntryIds.includes(match.entry_b.id)) playedEntryIds.push(match.entry_b.id)
+      }
+      navigate(`/battle/title/${id}/result`, { state: { playedEntryIds } })
+      return
+    }
+    setCurrentIndex(prev => prev + 1)
+    setVoted(false)
+    setVotedEntry(null)
+    setVotedTotal(null)
   }
 
   if (loading) return <Loading message={t('titleBattlePlay.loadingMatch')} />
 
-  if (status === 'completed') {
-    navigate(`/battle/title/${id}/result`, { replace: true })
-    return <Loading message={t('titleBattlePlay.loadingResults')} />
-  }
-
-  if (!match) {
+  if (!match || totalMatches === 0) {
     return (
       <div className="container animate-fade-in">
         <div className="battle-complete">
           <h2>{t('titleBattlePlay.waitingTitle')}</h2>
           <p>{t('titleBattlePlay.waitingDesc')}</p>
-          <button className="btn btn-secondary" onClick={fetchMatch}>{t('titleBattlePlay.refresh')}</button>
+          <Link to="/battle" className="btn btn-secondary">&larr; {t('battle.back')}</Link>
         </div>
       </div>
     )
   }
 
-  const totalA = voteResult ? voteResult.vote_count_a : match.vote_count_a
-  const totalB = voteResult ? voteResult.vote_count_b : match.vote_count_b
-  const totalVotes = totalA + totalB
-  const pctA = totalVotes > 0 ? Math.round((totalA / totalVotes) * 100) : 50
-  const pctB = totalVotes > 0 ? 100 - pctA : 50
-
   return (
     <div className="container animate-fade-in">
-      {/* Round & Progress */}
+      {/* Progress header */}
       <div className="battle-play-header">
-        <span className="battle-round-badge">{formatRound(match.round, t)}</span>
-        {progress && (
-          <span className="battle-progress-text">
-            {t('titleBattlePlay.match')} {progress.completed + 1} / {progress.total}
-          </span>
-        )}
+        <span className="battle-round-badge">
+          {t('titleBattlePlay.match')} {currentIndex + 1} / {totalMatches}
+        </span>
       </div>
 
       {/* Image (for title_battle) */}
@@ -113,7 +111,7 @@ export default function TitleBattlePlay() {
           <img src={tournament.problem_image_url} alt="" />
           {voted && (
             <div className="battle-play-winner-title animate-fade-in">
-              {pctA >= pctB ? match.entry_a_title : match.entry_b_title}
+              {votedEntry === match.entry_a.id ? match.entry_a.title : match.entry_b.title}
             </div>
           )}
         </div>
@@ -122,17 +120,13 @@ export default function TitleBattlePlay() {
       {/* Match Cards */}
       <div className="battle-match">
         <MatchCard
-          title={match.entry_a_title}
-          author={match.entry_a_author}
-          model={match.entry_a_model}
-          entryId={match.entry_a_id}
+          entry={match.entry_a}
           side="left"
           voted={voted}
-          isSelected={votedEntry === match.entry_a_id}
-          isWinner={voted && pctA >= pctB}
-          pct={voted ? pctA : null}
-          votes={voted ? totalA : null}
-          onVote={() => handleVote(match.entry_a_id)}
+          isSelected={votedEntry === match.entry_a.id}
+          isWinner={votedEntry === match.entry_a.id}
+          totalVotes={votedTotal}
+          onVote={() => handleVote(match.entry_a.id)}
           disabled={voting}
           t={t}
           lang={lang}
@@ -141,47 +135,41 @@ export default function TitleBattlePlay() {
         <div className="battle-vs">{t('titleBattlePlay.vs')}</div>
 
         <MatchCard
-          title={match.entry_b_title}
-          author={match.entry_b_author}
-          model={match.entry_b_model}
-          entryId={match.entry_b_id}
+          entry={match.entry_b}
           side="right"
           voted={voted}
-          isSelected={votedEntry === match.entry_b_id}
-          isWinner={voted && pctB > pctA}
-          pct={voted ? pctB : null}
-          votes={voted ? totalB : null}
-          onVote={() => handleVote(match.entry_b_id)}
+          isSelected={votedEntry === match.entry_b.id}
+          isWinner={votedEntry === match.entry_b.id}
+          totalVotes={votedTotal}
+          onVote={() => handleVote(match.entry_b.id)}
           disabled={voting}
           t={t}
           lang={lang}
         />
       </div>
 
-      {/* After vote: Next */}
+      {/* After vote: Next or Finish */}
       {voted && (
         <div className="battle-play-actions animate-fade-in">
           <button className="btn btn-primary btn-lg" onClick={handleNext}>
-            {t('titleBattlePlay.nextMatch')} &rarr;
+            {isLastMatch ? t('titleBattlePlay.viewResults') : t('titleBattlePlay.nextMatch')} &rarr;
           </button>
         </div>
       )}
 
       {/* Progress bar */}
-      {progress && (
-        <div className="battle-play-progress">
-          <GameProgress
-            current={progress.completed + (voted ? 1 : 0)}
-            total={progress.total}
-          />
-        </div>
-      )}
+      <div className="battle-play-progress">
+        <GameProgress
+          current={currentIndex + (voted ? 1 : 0)}
+          total={totalMatches}
+        />
+      </div>
     </div>
   )
 }
 
-function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pct, votes, onVote, disabled, t, lang }) {
-  const translated = useTranslatedText(title, lang)
+function MatchCard({ entry, side, voted, isSelected, isWinner, totalVotes, onVote, disabled, t, lang }) {
+  const translated = useTranslatedText(entry.title, lang)
   let cls = 'match-card match-card-' + side
   if (isSelected) cls += ' match-card-selected'
   if (voted && isWinner) cls += ' match-card-winner'
@@ -195,37 +183,21 @@ function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pc
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && !voted && !disabled && onVote()}
     >
-      <blockquote className="match-card-title">"{title}"</blockquote>
+      <blockquote className="match-card-title">"{entry.title}"</blockquote>
       {translated && <div className="match-card-translation">{translated}</div>}
       <div className={`match-card-author ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
-        {voted && model && <span className="match-card-model">{model}</span>}
-        <span>{t('titleBattlePlay.by')} {voted ? author : t('common.secretAgent')}</span>
+        {voted && entry.model_name && <span className="match-card-model">{entry.model_name}</span>}
+        <span>{t('titleBattlePlay.by')} {voted ? entry.author_name : t('common.secretAgent')}</span>
       </div>
 
-      {voted && pct !== null && (
+      {voted && isSelected && totalVotes !== null && (
         <div className="match-card-result animate-fade-in">
-          <div className="match-result-bar">
-            <div className="match-result-fill" style={{ '--target-width': pct + '%' }} />
-          </div>
           <div className="match-result-info">
-            <span className="match-result-pct">{pct}%</span>
-            <span className="match-result-votes">{votes} {votes !== 1 ? t('titleBattlePlay.votes') : t('titleBattlePlay.vote')}</span>
+            <span className="match-result-votes">{totalVotes} {totalVotes !== 1 ? t('titleBattlePlay.votes') : t('titleBattlePlay.vote')} {t('titleBattlePlay.cumulative')}</span>
           </div>
-          {isWinner && <div className="match-winner-badge">{t('titleBattlePlay.winner')}</div>}
+          <div className="match-winner-badge">{t('titleBattlePlay.winner')}</div>
         </div>
       )}
     </div>
   )
-}
-
-function formatRound(round, t) {
-  const map = {
-    final: t('titleBattlePlay.roundFinal'),
-    semi: t('titleBattlePlay.roundSemi'),
-    quarter: t('titleBattlePlay.roundQuarter'),
-    round_of_16: t('titleBattlePlay.roundOf16'),
-    round_of_32: t('titleBattlePlay.roundOf32'),
-    round_of_64: t('titleBattlePlay.roundOf64')
-  }
-  return map[round] || round
 }

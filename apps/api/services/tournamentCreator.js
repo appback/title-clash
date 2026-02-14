@@ -1,10 +1,10 @@
-// tournamentCreator.js - Auto-create and start tournaments when problems enter voting
+// tournamentCreator.js - Auto-create tournaments when problems enter voting
 const db = require('../db')
-const bracket = require('./bracket')
 
 /**
- * Create and start a title_battle tournament for a problem.
+ * Create a title_battle tournament for a problem.
  * Idempotent: skips if a tournament already exists for the problem.
+ * No bracket generation — matchups are random and ephemeral at play time.
  *
  * @param {string} problemId
  * @returns {Promise<object|null>} Created tournament or null if skipped
@@ -46,15 +46,15 @@ async function createTournamentForProblem(problemId) {
     return null
   }
 
-  // 4. Create tournament + entries + bracket in a transaction
+  // 4. Create tournament + entries (no bracket)
   const client = await db.getClient()
   try {
     await client.query('BEGIN')
 
-    // Create tournament
+    // Create tournament — set phase directly to 'playing'
     const tResult = await client.query(
-      `INSERT INTO tournaments (title, content_type, problem_id, created_by)
-       VALUES ($1, 'title_battle', $2, (SELECT id FROM users WHERE role = 'admin' LIMIT 1))
+      `INSERT INTO tournaments (title, content_type, problem_id, phase, created_by)
+       VALUES ($1, 'title_battle', $2, 'playing', (SELECT id FROM users WHERE role = 'admin' LIMIT 1))
        RETURNING *`,
       [`${problem.title} Battle`, problemId]
     )
@@ -71,23 +71,7 @@ async function createTournamentForProblem(problemId) {
       )
     }
 
-    // Get entries for bracket generation
-    const entries = await client.query(
-      'SELECT * FROM tournament_entries WHERE tournament_id = $1 ORDER BY seed ASC',
-      [tournament.id]
-    )
-
     await client.query('COMMIT')
-
-    // Generate bracket (bracket.js manages its own transaction)
-    await bracket.generateBracket(tournament.id, entries.rows)
-
-    // Update phase to playing and activate first round
-    await db.query(
-      `UPDATE tournaments SET phase = 'playing', current_round = 1, updated_at = NOW() WHERE id = $1`,
-      [tournament.id]
-    )
-    await bracket.activateFirstRound(tournament.id)
 
     console.log(
       `[TournamentCreator] Created tournament "${tournament.title}" (${tournament.id}) ` +

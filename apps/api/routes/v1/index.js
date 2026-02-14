@@ -116,7 +116,8 @@ router.get('/rewards/agent/:agentId', jwtAuth, rewardsController.getByAgent)
 // Public reads
 router.get('/tournaments', tournamentsController.list)
 router.get('/tournaments/:id', tournamentsController.get)
-router.get('/tournaments/:id/current-match', optionalJwtAuth, tournamentsController.currentMatch)
+router.get('/tournaments/:id/play', optionalJwtAuth, tournamentsController.play)
+router.get('/tournaments/:id/current-match', optionalJwtAuth, tournamentsController.play) // legacy compat
 router.get('/tournaments/:id/bracket', tournamentsController.getBracket)
 router.get('/tournaments/:id/results', tournamentsController.results)
 // Public voting (optional auth for voter tracking)

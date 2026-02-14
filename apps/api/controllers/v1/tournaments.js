@@ -1,8 +1,7 @@
-// Tournament controller: CRUD, bracket, voting, results
+// Tournament controller: CRUD, random matchup voting, results
 const db = require('../../db')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
 const { ValidationError, NotFoundError, AppError, ConflictError } = require('../../utils/errors')
-const bracket = require('../../services/bracket')
 
 // ==========================================
 // List tournaments
@@ -165,7 +164,7 @@ async function create(req, res, next) {
 }
 
 // ==========================================
-// Start tournament: generate bracket, activate first round
+// Start tournament: set phase to playing (no bracket needed)
 // ==========================================
 async function start(req, res, next) {
   const client = await db.getClient()
@@ -186,7 +185,7 @@ async function start(req, res, next) {
 
     // Get entries
     const entries = await client.query(
-      'SELECT * FROM tournament_entries WHERE tournament_id = $1 ORDER BY seed ASC',
+      'SELECT * FROM tournament_entries WHERE tournament_id = $1',
       [id]
     )
 
@@ -196,17 +195,11 @@ async function start(req, res, next) {
 
     await client.query('BEGIN')
 
-    // Generate bracket
-    await bracket.generateBracket(id, entries.rows)
-
-    // Update phase
+    // Update phase to playing (no bracket generation needed)
     await client.query(
-      `UPDATE tournaments SET phase = 'playing', current_round = 1, updated_at = NOW() WHERE id = $1`,
+      `UPDATE tournaments SET phase = 'playing', updated_at = NOW() WHERE id = $1`,
       [id]
     )
-
-    // Activate first round matches
-    await bracket.activateFirstRound(id)
 
     await client.query('COMMIT')
 
@@ -224,70 +217,71 @@ async function start(req, res, next) {
 }
 
 // ==========================================
-// Get current match for a user
+// Play: generate random matchups (ephemeral, no DB storage)
 // ==========================================
-async function currentMatch(req, res, next) {
+async function play(req, res, next) {
   try {
     const { id } = req.params
-    const voterId = req.user ? req.user.userId : null
-    const voterToken = !voterId ? (req.voterId || null) : null
 
-    // Find the first active match that this user hasn't voted on
-    let query = `
-      SELECT m.*,
-             ea.title AS entry_a_title, ea.author_name AS entry_a_author, ea.model_name AS entry_a_model,
-             ea.image_url AS entry_a_image, ea.source AS entry_a_source,
-             eb.title AS entry_b_title, eb.author_name AS entry_b_author, eb.model_name AS entry_b_model,
-             eb.image_url AS entry_b_image, eb.source AS entry_b_source
-      FROM tournament_matches m
-      LEFT JOIN tournament_entries ea ON ea.id = m.entry_a_id
-      LEFT JOIN tournament_entries eb ON eb.id = m.entry_b_id
-      WHERE m.tournament_id = $1
-        AND m.status = 'active'
-        AND m.entry_a_id IS NOT NULL
-        AND m.entry_b_id IS NOT NULL`
+    // Get tournament with problem info
+    const tResult = await db.query(
+      `SELECT t.*, p.title AS problem_title, p.image_url AS problem_image_url
+       FROM tournaments t
+       LEFT JOIN problems p ON p.id = t.problem_id
+       WHERE t.id = $1`,
+      [id]
+    )
+    if (tResult.rows.length === 0) throw new NotFoundError('Tournament not found')
+    const tournament = tResult.rows[0]
 
-    const params = [id]
-
-    // Exclude matches already voted
-    if (voterId) {
-      query += ` AND NOT EXISTS (
-        SELECT 1 FROM tournament_votes tv WHERE tv.match_id = m.id AND tv.voter_id = $2
-      )`
-      params.push(voterId)
-    } else if (voterToken) {
-      query += ` AND NOT EXISTS (
-        SELECT 1 FROM tournament_votes tv WHERE tv.match_id = m.id AND tv.voter_token = $2
-      )`
-      params.push(voterToken)
-    }
-
-    query += ' ORDER BY m.match_order ASC LIMIT 1'
-
-    const result = await db.query(query, params)
-
-    if (result.rows.length === 0) {
-      // Check if tournament is still playing
-      const t = await db.query('SELECT phase FROM tournaments WHERE id = $1', [id])
-      if (t.rows.length === 0) throw new NotFoundError('Tournament not found')
-
-      return res.json({ match: null, status: t.rows[0].phase === 'playing' ? 'waiting' : 'completed' })
-    }
-
-    // Get progress info
-    const progress = await db.query(
-      `SELECT
-         COUNT(*) FILTER (WHERE status = 'completed')::int AS completed,
-         COUNT(*) FILTER (WHERE status = 'active')::int AS active,
-         COUNT(*)::int AS total
-       FROM tournament_matches WHERE tournament_id = $1`,
+    // Get all entries
+    const entries = await db.query(
+      `SELECT id, title, author_name, model_name, source, total_votes_received
+       FROM tournament_entries
+       WHERE tournament_id = $1
+       ORDER BY RANDOM()`,
       [id]
     )
 
+    if (entries.rows.length < 2) {
+      throw new AppError(422, 'NOT_ENOUGH_ENTRIES', 'Need at least 2 entries to play')
+    }
+
+    // Shuffle is already done by ORDER BY RANDOM()
+    // Make count even by dropping last if odd
+    const shuffled = entries.rows
+    const count = shuffled.length % 2 === 0 ? shuffled.length : shuffled.length - 1
+
+    // Pair up: [0,1], [2,3], [4,5], ...
+    const matches = []
+    for (let i = 0; i < count; i += 2) {
+      matches.push({
+        entry_a: {
+          id: shuffled[i].id,
+          title: shuffled[i].title,
+          author_name: shuffled[i].author_name,
+          model_name: shuffled[i].model_name,
+          source: shuffled[i].source
+        },
+        entry_b: {
+          id: shuffled[i + 1].id,
+          title: shuffled[i + 1].title,
+          author_name: shuffled[i + 1].author_name,
+          model_name: shuffled[i + 1].model_name,
+          source: shuffled[i + 1].source
+        }
+      })
+    }
+
     res.json({
-      match: result.rows[0],
-      progress: progress.rows[0],
-      status: 'playing'
+      tournament: {
+        id: tournament.id,
+        title: tournament.title,
+        problem_title: tournament.problem_title,
+        problem_image_url: tournament.problem_image_url
+      },
+      matches,
+      total_entries: entries.rows.length
     })
   } catch (err) {
     next(err)
@@ -295,16 +289,16 @@ async function currentMatch(req, res, next) {
 }
 
 // ==========================================
-// Vote on a match
+// Vote on an entry (random matchup - no match_id needed)
 // ==========================================
 async function vote(req, res, next) {
   const client = await db.getClient()
   try {
     const { id } = req.params
-    const { match_id, entry_id } = req.body
+    const { entry_id } = req.body
 
-    if (!match_id || !entry_id) {
-      throw new ValidationError('match_id and entry_id are required')
+    if (!entry_id) {
+      throw new ValidationError('entry_id is required')
     }
 
     const voterId = req.user ? req.user.userId : null
@@ -316,58 +310,29 @@ async function vote(req, res, next) {
 
     await client.query('BEGIN')
 
-    // Verify match belongs to tournament and is active
-    const matchResult = await client.query(
-      'SELECT * FROM tournament_matches WHERE id = $1 AND tournament_id = $2 FOR UPDATE',
-      [match_id, id]
+    // Verify entry belongs to this tournament
+    const entryResult = await client.query(
+      'SELECT id, total_votes_received FROM tournament_entries WHERE id = $1 AND tournament_id = $2',
+      [entry_id, id]
     )
-    if (matchResult.rows.length === 0) {
-      throw new NotFoundError('Match not found in this tournament')
+    if (entryResult.rows.length === 0) {
+      throw new NotFoundError('Entry not found in this tournament')
     }
-
-    const match = matchResult.rows[0]
-    if (match.status !== 'active') {
-      throw new AppError(422, 'MATCH_NOT_ACTIVE', 'This match is not active')
-    }
-
-    // Verify entry is part of this match
-    if (entry_id !== match.entry_a_id && entry_id !== match.entry_b_id) {
-      throw new ValidationError('Entry is not part of this match')
-    }
-
-    // Check duplicate vote
-    if (voterId) {
-      const dup = await client.query(
-        'SELECT id FROM tournament_votes WHERE match_id = $1 AND voter_id = $2',
-        [match_id, voterId]
-      )
-      if (dup.rows.length > 0) throw new ConflictError('Already voted on this match')
-    } else {
-      const dup = await client.query(
-        'SELECT id FROM tournament_votes WHERE match_id = $1 AND voter_token = $2',
-        [match_id, voterToken]
-      )
-      if (dup.rows.length > 0) throw new ConflictError('Already voted on this match')
-    }
-
-    // Insert vote
-    await client.query(
-      `INSERT INTO tournament_votes (match_id, entry_id, voter_id, voter_token)
-       VALUES ($1, $2, $3, $4)`,
-      [match_id, entry_id, voterId, voterToken]
-    )
-
-    // Update vote counts on match
-    const voteField = entry_id === match.entry_a_id ? 'vote_count_a' : 'vote_count_b'
-    await client.query(
-      `UPDATE tournament_matches SET ${voteField} = ${voteField} + 1 WHERE id = $1`,
-      [match_id]
-    )
 
     // Update entry total votes
-    await client.query(
-      'UPDATE tournament_entries SET total_votes_received = total_votes_received + 1 WHERE id = $1',
+    const updated = await client.query(
+      `UPDATE tournament_entries
+       SET total_votes_received = total_votes_received + 1
+       WHERE id = $1
+       RETURNING total_votes_received`,
       [entry_id]
+    )
+
+    // Insert vote record (match_id is NULL for random matchups)
+    await client.query(
+      `INSERT INTO tournament_votes (match_id, entry_id, voter_id, voter_token)
+       VALUES (NULL, $1, $2, $3)`,
+      [entry_id, voterId, voterToken]
     )
 
     // Update tournament participant count
@@ -375,51 +340,22 @@ async function vote(req, res, next) {
       `UPDATE tournaments SET participant_count = (
         SELECT COUNT(DISTINCT COALESCE(voter_id::text, voter_token))
         FROM tournament_votes tv
-        JOIN tournament_matches tm ON tm.id = tv.match_id
-        WHERE tm.tournament_id = $1
+        WHERE tv.entry_id IN (
+          SELECT te.id FROM tournament_entries te WHERE te.tournament_id = $1
+        )
       ), updated_at = NOW() WHERE id = $1`,
       [id]
     )
 
     await client.query('COMMIT')
 
-    // Return updated match vote counts
-    const updated = await db.query(
-      'SELECT vote_count_a, vote_count_b FROM tournament_matches WHERE id = $1',
-      [match_id]
-    )
-
-    const vcA = updated.rows[0].vote_count_a
-    const vcB = updated.rows[0].vote_count_b
-
-    // Auto-advance: if total votes reach threshold, complete match and advance winner
-    const AUTO_ADVANCE_THRESHOLD = 1
-    let matchCompleted = false
-    let winnerId = null
-    if (vcA + vcB >= AUTO_ADVANCE_THRESHOLD && match.status === 'active') {
-      try {
-        winnerId = vcA >= vcB ? match.entry_a_id : match.entry_b_id
-        await bracket.advanceWinner(match_id, winnerId)
-        matchCompleted = true
-      } catch (_) {
-        // Non-critical: auto-advance failed, admin can manually complete
-      }
-    }
-
     res.status(201).json({
-      match_id,
       entry_id,
-      vote_count_a: vcA,
-      vote_count_b: vcB,
-      match_completed: matchCompleted,
-      winner_id: winnerId
+      total_votes: updated.rows[0].total_votes_received
     })
   } catch (err) {
     if (client) {
       try { await client.query('ROLLBACK') } catch (_) {}
-    }
-    if (err.code === '23505') {
-      return next(new ConflictError('Already voted on this match'))
     }
     next(err)
   } finally {
@@ -428,48 +364,10 @@ async function vote(req, res, next) {
 }
 
 // ==========================================
-// Complete a match (determine winner based on votes)
-// Called by admin or automatically
+// Complete a match (legacy - no longer used with random matchups)
 // ==========================================
 async function completeMatch(req, res, next) {
-  try {
-    const { id, matchId } = req.params
-
-    const matchResult = await db.query(
-      'SELECT * FROM tournament_matches WHERE id = $1 AND tournament_id = $2',
-      [matchId, id]
-    )
-    if (matchResult.rows.length === 0) {
-      throw new NotFoundError('Match not found')
-    }
-
-    const match = matchResult.rows[0]
-    if (match.status !== 'active') {
-      throw new AppError(422, 'MATCH_NOT_ACTIVE', 'Match is not active')
-    }
-
-    // Determine winner
-    let winnerId
-    if (match.vote_count_a > match.vote_count_b) {
-      winnerId = match.entry_a_id
-    } else if (match.vote_count_b > match.vote_count_a) {
-      winnerId = match.entry_b_id
-    } else {
-      // Tie: pick entry_a (higher seed advantage)
-      winnerId = match.entry_a_id
-    }
-
-    await bracket.advanceWinner(matchId, winnerId)
-
-    const updated = await db.query(
-      'SELECT * FROM tournament_matches WHERE id = $1',
-      [matchId]
-    )
-
-    res.json(updated.rows[0])
-  } catch (err) {
-    next(err)
-  }
+  next(new AppError(410, 'DEPRECATED', 'Match completion is not used with random matchups'))
 }
 
 // ==========================================
@@ -509,7 +407,7 @@ async function getBracket(req, res, next) {
 }
 
 // ==========================================
-// Get results + statistics
+// Get results + statistics (vote-based rankings)
 // ==========================================
 async function results(req, res, next) {
   try {
@@ -524,39 +422,33 @@ async function results(req, res, next) {
     )
     if (tournament.rows.length === 0) throw new NotFoundError('Tournament not found')
 
-    // Rankings
+    // Rankings by total_votes_received
     const rankings = await db.query(
-      `SELECT e.*, e.total_votes_received,
-              (SELECT COUNT(*) FROM tournament_matches
-               WHERE (winner_id = e.id)) AS wins,
-              (SELECT COUNT(*) FROM tournament_matches
-               WHERE (entry_a_id = e.id OR entry_b_id = e.id) AND winner_id IS NOT NULL AND winner_id != e.id) AS losses
-       FROM tournament_entries e
-       WHERE e.tournament_id = $1
-       ORDER BY e.final_rank ASC NULLS LAST, e.total_votes_received DESC`,
+      `SELECT id, title, author_name, model_name, source, total_votes_received
+       FROM tournament_entries
+       WHERE tournament_id = $1
+       ORDER BY total_votes_received DESC, created_at ASC`,
       [id]
     )
 
-    // Agent stats
+    // Agent stats (grouped by model)
     const agentStats = await db.query(
-      `SELECT e.author_name, e.model_name,
-              COUNT(*) FILTER (WHERE m.winner_id = e.id)::int AS wins,
-              COUNT(*) FILTER (WHERE m.winner_id IS NOT NULL AND m.winner_id != e.id)::int AS losses,
-              SUM(CASE WHEN e.id = m.entry_a_id THEN m.vote_count_a ELSE m.vote_count_b END)::int AS total_votes
-       FROM tournament_entries e
-       JOIN tournament_matches m ON (m.entry_a_id = e.id OR m.entry_b_id = e.id)
-       WHERE e.tournament_id = $1 AND m.status = 'completed'
-       GROUP BY e.author_name, e.model_name
-       ORDER BY wins DESC`,
+      `SELECT author_name, model_name,
+              COUNT(*)::int AS entry_count,
+              SUM(total_votes_received)::int AS total_votes,
+              MAX(total_votes_received)::int AS best_score
+       FROM tournament_entries
+       WHERE tournament_id = $1
+       GROUP BY author_name, model_name
+       ORDER BY total_votes DESC`,
       [id]
     )
 
     // Total votes
     const totalVotes = await db.query(
-      `SELECT COUNT(*)::int AS total
-       FROM tournament_votes tv
-       JOIN tournament_matches tm ON tm.id = tv.match_id
-       WHERE tm.tournament_id = $1`,
+      `SELECT COALESCE(SUM(total_votes_received), 0)::int AS total
+       FROM tournament_entries
+       WHERE tournament_id = $1`,
       [id]
     )
 
@@ -718,4 +610,4 @@ async function humanLike(req, res, next) {
   }
 }
 
-module.exports = { list, get, create, start, currentMatch, vote, completeMatch, getBracket, results, humanSubmit, humanSubmissions, humanLike }
+module.exports = { list, get, create, start, play, vote, completeMatch, getBracket, results, humanSubmit, humanSubmissions, humanLike }
