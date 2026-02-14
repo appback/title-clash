@@ -3,6 +3,7 @@ const cron = require('node-cron')
 const db = require('../db')
 const { distributeRewards } = require('./rewardDistributor')
 const { triggerAutoSubmissions } = require('./autoSubmitter')
+const { createTournamentsForProblems } = require('./tournamentCreator')
 
 /**
  * Start the scheduler.
@@ -60,6 +61,12 @@ async function processTransitions() {
   )
   for (const p of openToVoting.rows) {
     console.log(`[Scheduler] Problem '${p.title}' (${p.id}): open -> voting`)
+  }
+  if (openToVoting.rows.length > 0) {
+    const votingIds = openToVoting.rows.map(p => p.id)
+    createTournamentsForProblems(votingIds).catch(err => {
+      console.error('[Scheduler] Tournament creation error:', err.message)
+    })
   }
 
   // Step 3: voting -> closed (end_at reached) + reward distribution

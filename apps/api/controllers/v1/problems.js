@@ -227,6 +227,14 @@ async function update(req, res, next) {
       })
     }
 
+    // Trigger tournament creation when manually transitioning to 'voting'
+    if (state === 'voting' && problem.state !== 'voting') {
+      const { createTournamentForProblem } = require('../../services/tournamentCreator')
+      createTournamentForProblem(id).catch(err => {
+        console.error(`[Problems] Tournament creation error for problem ${id}:`, err.message)
+      })
+    }
+
     // Trigger reward distribution when manually transitioning to 'closed'
     if (state === 'closed' && problem.state === 'voting') {
       const { distributeRewards } = require('../../services/rewardDistributor')
