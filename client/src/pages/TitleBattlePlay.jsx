@@ -72,7 +72,7 @@ export default function TitleBattlePlay() {
 
   if (loading) return <Loading message={t('titleBattlePlay.loadingMatch')} />
 
-  if (status === 'completed' || (status === 'waiting' && !match)) {
+  if (status === 'completed') {
     navigate(`/battle/title/${id}/result`, { replace: true })
     return <Loading message={t('titleBattlePlay.loadingResults')} />
   }

@@ -393,11 +393,14 @@ async function vote(req, res, next) {
     const vcB = updated.rows[0].vote_count_b
 
     // Auto-advance: if total votes reach threshold, complete match and advance winner
-    const AUTO_ADVANCE_THRESHOLD = 3
+    const AUTO_ADVANCE_THRESHOLD = 1
+    let matchCompleted = false
+    let winnerId = null
     if (vcA + vcB >= AUTO_ADVANCE_THRESHOLD && match.status === 'active') {
       try {
-        const winnerId = vcA >= vcB ? match.entry_a_id : match.entry_b_id
+        winnerId = vcA >= vcB ? match.entry_a_id : match.entry_b_id
         await bracket.advanceWinner(match_id, winnerId)
+        matchCompleted = true
       } catch (_) {
         // Non-critical: auto-advance failed, admin can manually complete
       }
@@ -407,7 +410,9 @@ async function vote(req, res, next) {
       match_id,
       entry_id,
       vote_count_a: vcA,
-      vote_count_b: vcB
+      vote_count_b: vcB,
+      match_completed: matchCompleted,
+      winner_id: winnerId
     })
   } catch (err) {
     if (client) {
