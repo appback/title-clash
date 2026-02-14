@@ -2,6 +2,7 @@
 const cron = require('node-cron')
 const db = require('../db')
 const { distributeRewards } = require('./rewardDistributor')
+const { triggerAutoSubmissions } = require('./autoSubmitter')
 
 /**
  * Start the scheduler.
@@ -37,6 +38,12 @@ async function processTransitions() {
   )
   for (const p of draftToOpen.rows) {
     console.log(`[Scheduler] Problem '${p.title}' (${p.id}): draft -> open`)
+  }
+  if (draftToOpen.rows.length > 0) {
+    const openedIds = draftToOpen.rows.map(p => p.id)
+    triggerAutoSubmissions(openedIds).catch(err => {
+      console.error('[Scheduler] Auto-submission error:', err.message)
+    })
   }
 
   // Step 2: open -> voting (submission_deadline reached)

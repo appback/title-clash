@@ -2,6 +2,7 @@
 const db = require('../../db')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
 const { ValidationError, NotFoundError, AppError } = require('../../utils/errors')
+const { validateImageUrl } = require('../../utils/imageValidator')
 
 // Valid state transitions
 const VALID_TRANSITIONS = {
@@ -24,6 +25,16 @@ async function create(req, res, next) {
       throw new ValidationError('title is required')
     }
 
+    // Validate external image URL if provided
+    let imageWarning = null
+    if (image_url) {
+      const check = await validateImageUrl(image_url)
+      if (!check.valid) {
+        throw new ValidationError(`Image URL is not accessible: ${check.error}`)
+      }
+      if (check.warning) imageWarning = check.warning
+    }
+
     const result = await db.query(
       `INSERT INTO problems (title, image_url, description, state, created_by, start_at, end_at)
        VALUES ($1, $2, $3, 'draft', $4, $5, $6)
@@ -38,7 +49,9 @@ async function create(req, res, next) {
       ]
     )
 
-    res.status(201).json(result.rows[0])
+    const response = result.rows[0]
+    if (imageWarning) response.image_warning = imageWarning
+    res.status(201).json(response)
   } catch (err) {
     next(err)
   }
@@ -153,6 +166,16 @@ async function update(req, res, next) {
       }
     }
 
+    // Validate external image URL if being changed
+    let imageWarning = null
+    if (image_url !== undefined && image_url !== null && image_url !== '') {
+      const check = await validateImageUrl(image_url)
+      if (!check.valid) {
+        throw new ValidationError(`Image URL is not accessible: ${check.error}`)
+      }
+      if (check.warning) imageWarning = check.warning
+    }
+
     // Build dynamic update
     const updates = []
     const params = []
@@ -196,6 +219,14 @@ async function update(req, res, next) {
       params
     )
 
+    // Trigger auto-submission when manually transitioning to 'open'
+    if (state === 'open' && problem.state !== 'open') {
+      const { triggerAutoSubmissions } = require('../../services/autoSubmitter')
+      triggerAutoSubmissions([id]).catch(err => {
+        console.error(`[Problems] Auto-submission error for problem ${id}:`, err.message)
+      })
+    }
+
     // Trigger reward distribution when manually transitioning to 'closed'
     if (state === 'closed' && problem.state === 'voting') {
       const { distributeRewards } = require('../../services/rewardDistributor')
@@ -204,7 +235,9 @@ async function update(req, res, next) {
       })
     }
 
-    res.json(result.rows[0])
+    const response = result.rows[0]
+    if (imageWarning) response.image_warning = imageWarning
+    res.json(response)
   } catch (err) {
     next(err)
   }
