@@ -17,6 +17,9 @@ const { loadSettings } = require('./services/configManager')
 
 const app = express()
 
+// Trust first proxy (Nginx) — needed for express-rate-limit behind reverse proxy
+app.set('trust proxy', 1)
+
 // 1. Security headers (highest priority)
 app.use(helmet({
   contentSecurityPolicy: false,
