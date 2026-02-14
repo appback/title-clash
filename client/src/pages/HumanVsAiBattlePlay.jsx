@@ -133,7 +133,7 @@ export default function HumanVsAiBattlePlay() {
       </div>
 
       <div className="image-battle-match">
-        <HumanCard
+        <BattleCard
           entry={match.human}
           side="left"
           voted={voted}
@@ -142,12 +142,14 @@ export default function HumanVsAiBattlePlay() {
           disabled={voting}
           t={t}
           lang={lang}
-          badge={t('humanVsAi.humanBadge')}
+          typeBadge={t('humanVsAi.humanBadge')}
+          badgeClass="hva-badge-human"
+          authorName={match.human.author_name}
         />
 
         <div className="battle-vs">{t('titleBattlePlay.vs')}</div>
 
-        <AiCard
+        <BattleCard
           entry={match.ai}
           side="right"
           voted={voted}
@@ -156,7 +158,9 @@ export default function HumanVsAiBattlePlay() {
           disabled={voting}
           t={t}
           lang={lang}
-          badge="AI"
+          typeBadge="AI"
+          badgeClass="hva-badge-ai"
+          authorName={match.ai.author_name}
         />
       </div>
 
@@ -175,7 +179,7 @@ export default function HumanVsAiBattlePlay() {
   )
 }
 
-function HumanCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, badge }) {
+function BattleCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, typeBadge, badgeClass, authorName }) {
   const translated = useTranslatedText(entry.title, lang)
   let cls = 'image-battle-card image-battle-card-' + side
   if (isSelected) cls += ' match-card-selected match-card-winner'
@@ -189,40 +193,8 @@ function HumanCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, 
       tabIndex={0}
       onKeyDown={e => e.key === 'Enter' && !voted && !disabled && onVote()}
     >
-      <span className="hva-type-badge hva-badge-human">{badge}</span>
-      {entry.image_url && (
-        <div className="image-battle-img">
-          <img src={entry.image_url} alt="" loading="lazy" />
-        </div>
-      )}
-      <blockquote className="match-card-title">"{entry.title}"</blockquote>
-      {translated && <div className="match-card-translation">{translated}</div>}
-      <div className="match-card-author agent-reveal">
-        <span>{t('titleBattlePlay.by')} {entry.author_name}</span>
-      </div>
-      {voted && isSelected && (
-        <div className="match-winner-badge animate-fade-in">{t('titleBattlePlay.winner')}</div>
-      )}
-    </div>
-  )
-}
-
-function AiCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, badge }) {
-  const translated = useTranslatedText(entry.title, lang)
-  let cls = 'image-battle-card image-battle-card-' + side
-  if (isSelected) cls += ' match-card-selected match-card-winner'
-  if (voted && !isSelected) cls += ' match-card-loser'
-
-  return (
-    <div
-      className={cls}
-      onClick={() => !voted && !disabled && onVote()}
-      role="button"
-      tabIndex={0}
-      onKeyDown={e => e.key === 'Enter' && !voted && !disabled && onVote()}
-    >
-      <span className="hva-type-badge hva-badge-ai">{badge}</span>
-      {entry.image_url && (
+      {voted && <span className={`hva-type-badge ${badgeClass} animate-fade-in`}>{typeBadge}</span>}
+      {(entry.image_url) && (
         <div className="image-battle-img">
           <img src={entry.image_url} alt="" loading="lazy" />
         </div>
@@ -230,8 +202,7 @@ function AiCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, bad
       <blockquote className="match-card-title">"{entry.title}"</blockquote>
       {translated && <div className="match-card-translation">{translated}</div>}
       <div className={`match-card-author ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
-        {voted && entry.model_name && <span className="match-card-model">{entry.model_name}</span>}
-        <span>{t('titleBattlePlay.by')} {voted ? entry.author_name : t('common.secretAgent')}</span>
+        <span>{t('titleBattlePlay.by')} {voted ? authorName : t('common.secretAgent')}</span>
       </div>
       {voted && isSelected && (
         <div className="match-winner-badge animate-fade-in">{t('titleBattlePlay.winner')}</div>

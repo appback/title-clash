@@ -78,10 +78,11 @@ export default function TitleBattleResult() {
 
   const { tournament, rankings, agent_stats, total_votes, participant_count } = data
 
-  // Filter rankings to show only played entries if available
-  const displayRankings = playedEntryIds
+  // Filter rankings to show only played entries if available, top 5
+  const displayRankings = (playedEntryIds
     ? rankings.filter(r => playedEntryIds.includes(r.id))
     : rankings
+  ).slice(0, 5)
 
   const winner = displayRankings.length > 0 ? displayRankings[0] : null
   const medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49']

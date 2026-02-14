@@ -59,7 +59,8 @@
     "sessionCount": "You completed {count} matches this session.",
     "backToBattle": "Back to Battle",
     "playAgain": "Play Again",
-    "finish": "Finish"
+    "finish": "Finish",
+    "topWinners": "Top Winners"
   },
   "humanVsAi": {
     "loading": "Loading Human vs AI battles...",

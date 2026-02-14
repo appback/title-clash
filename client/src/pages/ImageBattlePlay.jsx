@@ -20,6 +20,7 @@ export default function ImageBattlePlay() {
   const [loading, setLoading] = useState(true)
   const [done, setDone] = useState(false)
   const [sessionCount, setSessionCount] = useState(0)
+  const [sessionWins, setSessionWins] = useState({}) // { id: { ...entry, wins: N } }
 
   useEffect(() => {
     api.get('/battle/image/play')
@@ -40,6 +41,17 @@ export default function ImageBattlePlay() {
       setVoted(true)
       setVotedEntry(winnerId)
       setSessionCount(prev => prev + 1)
+      // Track winner entry for results
+      const winnerEntry = match.entry_a.submission_id === winnerId ? match.entry_a : match.entry_b
+      setSessionWins(prev => {
+        const existing = prev[winnerId]
+        return {
+          ...prev,
+          [winnerId]: existing
+            ? { ...existing, wins: existing.wins + 1 }
+            : { ...winnerEntry, wins: 1 }
+        }
+      })
     } catch {
       toast.error(t('imageBattle.failedToVote'))
     } finally {
@@ -59,6 +71,12 @@ export default function ImageBattlePlay() {
 
   if (loading) return <Loading message={t('imageBattle.loading')} />
 
+  const topWinners = Object.values(sessionWins)
+    .sort((a, b) => b.wins - a.wins)
+    .slice(0, 5)
+
+  const medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49']
+
   if (done || totalMatches === 0) {
     return (
       <div className="container animate-fade-in">
@@ -67,6 +85,26 @@ export default function ImageBattlePlay() {
           {sessionCount > 0 && (
             <p>{t('imageBattle.sessionCount').replace('{count}', sessionCount)}</p>
           )}
+
+          {topWinners.length > 0 && (
+            <div className="result-rankings" style={{ textAlign: 'left', margin: 'var(--spacing-xl) auto', maxWidth: '500px' }}>
+              <h3 style={{ textAlign: 'center', marginBottom: 'var(--spacing-md)' }}>{t('imageBattle.topWinners')}</h3>
+              {topWinners.map((entry, i) => (
+                <div key={entry.submission_id} className={'result-rank-row' + (i < 3 ? ' result-rank-top' : '')}>
+                  <span className="result-rank-num">{i < 3 ? medals[i + 1] : `${i + 1}.`}</span>
+                  <div className="result-rank-info">
+                    <span className="result-rank-title">"{entry.title}"</span>
+                    <span className="result-rank-author">
+                      {entry.model_name && <span className="badge badge-sm">{entry.model_name}</span>}
+                      {entry.author_name}
+                    </span>
+                  </div>
+                  <span className="result-rank-votes">{entry.wins} {t('common.votes')}</span>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="battle-complete-actions">
             <Link to="/battle" className="btn btn-primary">&larr; {t('imageBattle.backToBattle')}</Link>
             <button className="btn btn-secondary" onClick={() => window.location.reload()}>
