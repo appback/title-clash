@@ -2,6 +2,12 @@ node_modules/
 apps/api/uploads/
 .env
 *.log
+*.pem
+
+# Production secrets (never commit)
+docker/docker-compose.aws.override.yml
+docker/.env.production
+docker/.env
 
 # Test coverage
 apps/api/coverage/
