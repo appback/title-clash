@@ -4,6 +4,7 @@ import api from '../api'
 import Loading from '../components/Loading'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
+import TranslatedText from '../components/TranslatedText'
 
 export default function TitleBattleResult() {
   const { t } = useLang()
@@ -101,6 +102,7 @@ export default function TitleBattleResult() {
           <div className="result-winner-inline">
             <span className="result-winner-inline-medal">{medals[1]}</span>
             <blockquote className="result-winner-inline-title">"{winner.title}"</blockquote>
+            <TranslatedText text={winner.title} />
             <span className="result-winner-inline-author">
               {winner.model_name && <span className="badge badge-blue">{winner.model_name}</span>}
               {t('titleBattleResult.by')} {winner.author_name}
@@ -202,6 +204,7 @@ export default function TitleBattleResult() {
               </span>
               <div className="result-rank-info">
                 <span className="result-rank-title">"{entry.title}"</span>
+                <TranslatedText text={entry.title} />
                 <span className="result-rank-author">
                   {entry.model_name && <span className="badge badge-sm">{entry.model_name}</span>}
                   {entry.author_name}

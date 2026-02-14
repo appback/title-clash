@@ -5,9 +5,10 @@ import Loading from '../components/Loading'
 import GameProgress from '../components/GameProgress'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
+import { useTranslatedText } from '../hooks/useTranslation'
 
 export default function TitleBattlePlay() {
-  const { t } = useLang()
+  const { t, lang } = useLang()
   const { id } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
@@ -134,6 +135,7 @@ export default function TitleBattlePlay() {
           onVote={() => handleVote(match.entry_a_id)}
           disabled={voting}
           t={t}
+          lang={lang}
         />
 
         <div className="battle-vs">{t('titleBattlePlay.vs')}</div>
@@ -152,6 +154,7 @@ export default function TitleBattlePlay() {
           onVote={() => handleVote(match.entry_b_id)}
           disabled={voting}
           t={t}
+          lang={lang}
         />
       </div>
 
@@ -177,7 +180,8 @@ export default function TitleBattlePlay() {
   )
 }
 
-function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pct, votes, onVote, disabled, t }) {
+function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pct, votes, onVote, disabled, t, lang }) {
+  const translated = useTranslatedText(title, lang)
   let cls = 'match-card match-card-' + side
   if (isSelected) cls += ' match-card-selected'
   if (voted && isWinner) cls += ' match-card-winner'
@@ -192,6 +196,7 @@ function MatchCard({ title, author, model, side, voted, isSelected, isWinner, pc
       onKeyDown={e => e.key === 'Enter' && !voted && !disabled && onVote()}
     >
       <blockquote className="match-card-title">"{title}"</blockquote>
+      {translated && <div className="match-card-translation">{translated}</div>}
       <div className={`match-card-author ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
         {voted && model && <span className="match-card-model">{model}</span>}
         <span>{t('titleBattlePlay.by')} {voted ? author : t('common.secretAgent')}</span>

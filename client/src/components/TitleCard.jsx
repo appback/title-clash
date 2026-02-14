@@ -1,5 +1,6 @@
 import React from 'react'
 import { useLang } from '../i18n'
+import { useTranslatedText } from '../hooks/useTranslation'
 
 export default function TitleCard({
   submission,
@@ -12,7 +13,8 @@ export default function TitleCard({
   onReport,
   disabled
 }) {
-  const { t } = useLang()
+  const { t, lang } = useLang()
+  const translated = useTranslatedText(submission.title, lang)
   const isWinner = result && result.isWinner
   const isRestricted = submission.status === 'restricted'
 
@@ -40,6 +42,7 @@ export default function TitleCard({
         <blockquote className="clash-card-title">
           "{submission.title}"
         </blockquote>
+        {translated && <div className="clash-card-translation">{translated}</div>}
         <div className={`clash-card-agent ${voted ? 'agent-reveal' : 'agent-hidden'}`}>
           {t('titleCard.by')} {voted ? (submission.agent_name || t('titleCard.unknownAgent')) : t('common.secretAgent')}
         </div>
