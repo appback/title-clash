@@ -8,6 +8,27 @@ import ImageUpload from '../components/ImageUpload'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
 
+function Pagination({ page, total, limit, onPageChange, t }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  if (totalPages <= 1) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-md)', padding: 'var(--spacing-md) 0' }}>
+      <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        {t('admin.prev')}
+      </button>
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+        {page} / {totalPages}
+      </span>
+      <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        {t('admin.next')}
+      </button>
+      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+        {t('admin.totalItems').replace('{total}', total)}
+      </span>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const { t } = useLang()
   const [activeTab, setActiveTab] = useState('problems')
@@ -68,6 +89,8 @@ export default function AdminPage() {
 function ProblemsAdmin() {
   const { t } = useLang()
   const [problems, setProblems] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
   const [form, setForm] = useState({ title: '', description: '', image_url: '', start_at: '', end_at: '' })
@@ -77,13 +100,14 @@ function ProblemsAdmin() {
 
   async function fetchProblems() {
     try {
-      const res = await api.get('/problems', { params: { limit: 50 } })
+      const res = await api.get('/problems', { params: { limit: 50, page } })
       setProblems(res.data.data || [])
+      setTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchProblems() }, [])
+  useEffect(() => { fetchProblems() }, [page])
 
   async function handleCreate() {
     if (!token) { toast.error('Admin token required.'); return }
@@ -128,7 +152,7 @@ function ProblemsAdmin() {
   return (
     <div>
       <div className="section-header">
-        <h2>{t('admin.problems')} ({problems.length})</h2>
+        <h2>{t('admin.problems')} ({total})</h2>
         <button className="btn btn-primary btn-sm" onClick={() => setShowCreate(true)}>
           {t('admin.createProblem')}
         </button>
@@ -170,6 +194,8 @@ function ProblemsAdmin() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} total={total} limit={50} onPageChange={setPage} t={t} />
 
       <Modal
         open={showCreate}
@@ -224,6 +250,8 @@ function ProblemsAdmin() {
 function SubmissionsAdmin() {
   const { t } = useLang()
   const [submissions, setSubmissions] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [filters, setFilters] = useState({ status: '', has_reports: '' })
   const [reportDetail, setReportDetail] = useState(null)
@@ -233,16 +261,18 @@ function SubmissionsAdmin() {
   async function fetchSubmissions() {
     setLoading(true)
     try {
-      const params = { limit: 50 }
+      const params = { limit: 50, page }
       if (filters.status) params.status = filters.status
       if (filters.has_reports) params.has_reports = filters.has_reports
       const res = await adminApi.get('/submissions/admin', params)
       setSubmissions(res.data.data || [])
+      setTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }
     finally { setLoading(false) }
   }
 
-  useEffect(() => { fetchSubmissions() }, [filters])
+  useEffect(() => { setPage(1) }, [filters])
+  useEffect(() => { fetchSubmissions() }, [filters, page])
 
   async function handleStatusChange(id, newStatus) {
     try {
@@ -343,6 +373,8 @@ function SubmissionsAdmin() {
         </div>
       )}
 
+      <Pagination page={page} total={total} limit={50} onPageChange={setPage} t={t} />
+
       {/* Reports Detail Modal */}
       <Modal
         open={!!reportDetail}
@@ -388,6 +420,8 @@ function SubmissionsAdmin() {
 function AgentsAdmin() {
   const { t } = useLang()
   const [agents, setAgents] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const token = localStorage.getItem('admin_token')
 
@@ -395,20 +429,22 @@ function AgentsAdmin() {
     async function fetchAgents() {
       if (!token) { setLoading(false); return }
       try {
-        const res = await adminApi.get('/agents', { limit: 50 })
-        setAgents(res.data.data || res.data || [])
+        const res = await adminApi.get('/agents', { limit: 50, page })
+        const data = res.data.data || res.data || []
+        setAgents(Array.isArray(data) ? data : [])
+        setTotal(res.data.pagination?.total || 0)
       } catch { /* ignore */ }
       finally { setLoading(false) }
     }
     fetchAgents()
-  }, [token])
+  }, [token, page])
 
   if (!token) return <div className="empty-state">{t('admin.setTokenMsg')}</div>
   if (loading) return <Loading message={t('admin.loadingAgents')} />
 
   return (
     <div>
-      <h2 className="section-title">{t('admin.registeredAgents')} ({agents.length})</h2>
+      <h2 className="section-title">{t('admin.registeredAgents')} ({total})</h2>
       <div className="table-wrapper">
         <table className="table">
           <thead>
@@ -429,6 +465,8 @@ function AgentsAdmin() {
           </tbody>
         </table>
       </div>
+
+      <Pagination page={page} total={total} limit={50} onPageChange={setPage} t={t} />
     </div>
   )
 }

@@ -326,7 +326,10 @@
     "loadingSettings": "Loading settings...",
     "couldNotLoadStats": "Could not load admin stats.",
     "problemCreated": "Problem created",
-    "stateUpdated": "State updated to"
+    "stateUpdated": "State updated to",
+    "prev": "Prev",
+    "next": "Next",
+    "totalItems": "{total} items"
   },
   "report": {
     "title": "Report Submission",

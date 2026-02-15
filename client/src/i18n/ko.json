@@ -326,7 +326,10 @@
     "loadingSettings": "\uc124\uc815 \ub85c\ub529 \uc911...",
     "couldNotLoadStats": "\uad00\ub9ac\uc790 \ud1b5\uacc4\ub97c \ubd88\ub7ec\uc62c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
     "problemCreated": "\ubb38\uc81c\uac00 \uc0dd\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4",
-    "stateUpdated": "\uc0c1\ud0dc\uac00 \ubcc0\uacbd\ub418\uc5c8\uc2b5\ub2c8\ub2e4:"
+    "stateUpdated": "\uc0c1\ud0dc\uac00 \ubcc0\uacbd\ub418\uc5c8\uc2b5\ub2c8\ub2e4:",
+    "prev": "\uc774\uc804",
+    "next": "\ub2e4\uc74c",
+    "totalItems": "\ucd1d {total}\uac74"
   },
   "report": {
     "title": "\uc81c\ucd9c\uc791 \uc2e0\uace0",
