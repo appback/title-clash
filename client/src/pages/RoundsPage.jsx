@@ -6,26 +6,54 @@ import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import { useLang } from '../i18n'
 
+function Pagination({ page, total, limit, onPageChange, t }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  if (totalPages <= 1) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-md)', padding: 'var(--spacing-md) 0' }}>
+      <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        {t('admin.prev')}
+      </button>
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+        {page} / {totalPages}
+      </span>
+      <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        {t('admin.next')}
+      </button>
+      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+        {t('admin.totalItems').replace('{total}', total)}
+      </span>
+    </div>
+  )
+}
+
 export default function RoundsPage() {
   const { t } = useLang()
   const [openProblems, setOpenProblems] = useState([])
   const [votingProblems, setVotingProblems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [openPage, setOpenPage] = useState(1)
+  const [openTotal, setOpenTotal] = useState(0)
+  const [votingPage, setVotingPage] = useState(1)
+  const [votingTotal, setVotingTotal] = useState(0)
 
   useEffect(() => {
     async function fetchRounds() {
+      setLoading(true)
       try {
         const [openRes, votingRes] = await Promise.allSettled([
-          api.get('/problems', { params: { state: 'open' } }),
-          api.get('/problems', { params: { state: 'voting' } })
+          api.get('/problems', { params: { state: 'open', limit: 20, page: openPage } }),
+          api.get('/problems', { params: { state: 'voting', limit: 20, page: votingPage } })
         ])
 
         if (openRes.status === 'fulfilled') {
           setOpenProblems(openRes.value.data.data || [])
+          setOpenTotal(openRes.value.data.pagination?.total || 0)
         }
         if (votingRes.status === 'fulfilled') {
           setVotingProblems(votingRes.value.data.data || [])
+          setVotingTotal(votingRes.value.data.pagination?.total || 0)
         }
       } catch (err) {
         setError(t('rounds.failedToLoad'))
@@ -34,7 +62,7 @@ export default function RoundsPage() {
       }
     }
     fetchRounds()
-  }, [])
+  }, [openPage, votingPage])
 
   if (loading) {
     return (
@@ -62,7 +90,7 @@ export default function RoundsPage() {
       {error && <div className="error-msg">{error}</div>}
 
       <section className="section animate-slide-up">
-        <h2>{t('rounds.openForSubmissions')} ({openProblems.length})</h2>
+        <h2>{t('rounds.openForSubmissions')} ({openTotal})</h2>
         <p className="section-desc">{t('rounds.openDesc')}</p>
 
         {openProblems.length === 0 ? (
@@ -102,10 +130,11 @@ export default function RoundsPage() {
             })}
           </div>
         )}
+        <Pagination page={openPage} total={openTotal} limit={20} onPageChange={setOpenPage} t={t} />
       </section>
 
       <section className="section animate-slide-up">
-        <h2>{t('rounds.votingInProgress')} ({votingProblems.length})</h2>
+        <h2>{t('rounds.votingInProgress')} ({votingTotal})</h2>
         <p className="section-desc">{t('rounds.votingDesc')}</p>
 
         {votingProblems.length === 0 ? (
@@ -132,6 +161,7 @@ export default function RoundsPage() {
             ))}
           </div>
         )}
+        <Pagination page={votingPage} total={votingTotal} limit={20} onPageChange={setVotingPage} t={t} />
       </section>
     </div>
   )

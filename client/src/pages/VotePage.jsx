@@ -6,6 +6,27 @@ import Loading from '../components/Loading'
 import Countdown from '../components/Countdown'
 import { useLang } from '../i18n'
 
+function Pagination({ page, total, limit, onPageChange, t }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  if (totalPages <= 1) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-md)', padding: 'var(--spacing-md) 0' }}>
+      <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        {t('admin.prev')}
+      </button>
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+        {page} / {totalPages}
+      </span>
+      <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        {t('admin.next')}
+      </button>
+      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+        {t('admin.totalItems').replace('{total}', total)}
+      </span>
+    </div>
+  )
+}
+
 export default function VotePage() {
   const { problemId } = useParams()
 
@@ -20,12 +41,16 @@ function VoteList() {
   const [problems, setProblems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
     async function fetchProblems() {
       try {
-        const res = await api.get('/problems', { params: { state: 'voting' } })
+        setLoading(true)
+        const res = await api.get('/problems', { params: { state: 'voting', limit: 20, page } })
         setProblems(res.data.data || [])
+        setTotal(res.data.pagination?.total || 0)
       } catch (err) {
         setError(t('vote.failedToLoad'))
       } finally {
@@ -33,7 +58,7 @@ function VoteList() {
       }
     }
     fetchProblems()
-  }, [])
+  }, [page])
 
   if (loading) {
     return (
@@ -58,36 +83,39 @@ function VoteList() {
           <p>{t('vote.checkBackSoon')} <Link to="/rounds">{t('vote.roundsLink')}</Link> {t('vote.toSeeUpcoming')}</p>
         </div>
       ) : (
-        <div className="card-grid">
-          {problems.map(p => (
-            <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
-              {p.image_url && (
-                <div className="card-image">
-                  <img src={p.image_url} alt={p.title} loading="lazy" />
-                </div>
-              )}
-              <div className="card-body">
-                <h3 className="card-title">{p.title}</h3>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
-                  <span className="badge badge-voting">{t('rounds.voting')}</span>
-                  {p.submission_count > 0 && (
-                    <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
-                      {t('vote.titlesCompeting', { count: p.submission_count })}
-                    </span>
-                  )}
-                </div>
-                {p.end_at && (
-                  <div className="card-meta">
-                    <Countdown targetDate={p.end_at} />
+        <>
+          <div className="card-grid">
+            {problems.map(p => (
+              <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
+                {p.image_url && (
+                  <div className="card-image">
+                    <img src={p.image_url} alt={p.title} loading="lazy" />
                   </div>
                 )}
-                {p.description && (
-                  <p className="card-desc">{p.description}</p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
+                <div className="card-body">
+                  <h3 className="card-title">{p.title}</h3>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-sm)' }}>
+                    <span className="badge badge-voting">{t('rounds.voting')}</span>
+                    {p.submission_count > 0 && (
+                      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-muted)' }}>
+                        {t('vote.titlesCompeting', { count: p.submission_count })}
+                      </span>
+                    )}
+                  </div>
+                  {p.end_at && (
+                    <div className="card-meta">
+                      <Countdown targetDate={p.end_at} />
+                    </div>
+                  )}
+                  {p.description && (
+                    <p className="card-desc">{p.description}</p>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+          <Pagination page={page} total={total} limit={20} onPageChange={setPage} t={t} />
+        </>
       )}
     </div>
   )
@@ -101,21 +129,19 @@ function VoteDetail({ problemId }) {
   const [tournament, setTournament] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [subPage, setSubPage] = useState(1)
+  const [subTotal, setSubTotal] = useState(0)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [problemRes, submissionsRes, tournamentRes] = await Promise.allSettled([
+        const [problemRes, tournamentRes] = await Promise.allSettled([
           api.get('/problems/' + problemId),
-          api.get('/submissions', { params: { problem_id: problemId } }),
           api.get('/tournaments', { params: { problem_id: problemId } })
         ])
 
         if (problemRes.status === 'fulfilled') {
           setProblem(problemRes.value.data)
-        }
-        if (submissionsRes.status === 'fulfilled') {
-          setSubmissions(submissionsRes.value.data.data || [])
         }
         if (tournamentRes.status === 'fulfilled') {
           const tournaments = tournamentRes.value.data.data || []
@@ -131,6 +157,19 @@ function VoteDetail({ problemId }) {
     }
     fetchData()
   }, [problemId])
+
+  useEffect(() => {
+    async function fetchSubmissions() {
+      try {
+        const res = await api.get('/submissions', { params: { problem_id: problemId, limit: 20, page: subPage } })
+        setSubmissions(res.data.data || [])
+        setSubTotal(res.data.pagination?.total || 0)
+      } catch (err) {
+        // submission fetch error handled silently
+      }
+    }
+    fetchSubmissions()
+  }, [problemId, subPage])
 
   if (loading) {
     return (
@@ -197,23 +236,26 @@ function VoteDetail({ problemId }) {
         {submissions.length === 0 ? (
           <p style={{ color: 'var(--color-text-muted)' }}>{t('vote.noSubmissions')}</p>
         ) : (
-          <div className="card-grid">
-            {submissions.map(s => (
-              <div key={s.id} className="card">
-                <div className="card-body">
-                  <h3 className="card-title">{s.title}</h3>
-                  <div className="card-meta">
-                    <span>{t('vote.agent')}: {s.agent_name || s.model_name || 'Unknown'}</span>
-                    {s.created_at && (
-                      <span style={{ marginLeft: 'var(--spacing-sm)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
-                        {new Date(s.created_at).toLocaleDateString()}
-                      </span>
-                    )}
+          <>
+            <div className="card-grid">
+              {submissions.map(s => (
+                <div key={s.id} className="card">
+                  <div className="card-body">
+                    <h3 className="card-title">{s.title}</h3>
+                    <div className="card-meta">
+                      <span>{t('vote.agent')}: {s.agent_name || s.model_name || 'Unknown'}</span>
+                      {s.created_at && (
+                        <span style={{ marginLeft: 'var(--spacing-sm)', color: 'var(--color-text-muted)', fontSize: 'var(--text-sm)' }}>
+                          {new Date(s.created_at).toLocaleDateString()}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+            <Pagination page={subPage} total={subTotal} limit={20} onPageChange={setSubPage} t={t} />
+          </>
         )}
       </div>
     </div>

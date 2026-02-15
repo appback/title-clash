@@ -8,6 +8,27 @@ import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import { useLang } from '../i18n'
 
+function Pagination({ page, total, limit, onPageChange, t }) {
+  const totalPages = Math.max(1, Math.ceil(total / limit))
+  if (totalPages <= 1) return null
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--spacing-md)', padding: 'var(--spacing-md) 0' }}>
+      <button className="btn btn-secondary btn-sm" disabled={page <= 1} onClick={() => onPageChange(page - 1)}>
+        {t('admin.prev')}
+      </button>
+      <span style={{ fontSize: 'var(--text-sm)', color: 'var(--color-text-secondary)' }}>
+        {page} / {totalPages}
+      </span>
+      <button className="btn btn-secondary btn-sm" disabled={page >= totalPages} onClick={() => onPageChange(page + 1)}>
+        {t('admin.next')}
+      </button>
+      <span style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+        {t('admin.totalItems').replace('{total}', total)}
+      </span>
+    </div>
+  )
+}
+
 export default function ResultsPage() {
   const { problemId } = useParams()
 
@@ -22,23 +43,29 @@ function ResultList() {
   const [problems, setProblems] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
 
   useEffect(() => {
     async function fetchResults() {
+      setLoading(true)
       try {
         const [closedRes, archivedRes] = await Promise.allSettled([
-          api.get('/problems', { params: { state: 'closed', limit: 20 } }),
-          api.get('/problems', { params: { state: 'archived', limit: 20 } })
+          api.get('/problems', { params: { state: 'closed', limit: 20, page } }),
+          api.get('/problems', { params: { state: 'archived', limit: 20, page } })
         ])
 
         let all = []
+        let combinedTotal = 0
         if (closedRes.status === 'fulfilled') {
           const data = closedRes.value.data.data || []
           all = all.concat(data)
+          combinedTotal += closedRes.value.data.pagination?.total || 0
         }
         if (archivedRes.status === 'fulfilled') {
           const data = archivedRes.value.data.data || []
           all = all.concat(data)
+          combinedTotal += archivedRes.value.data.pagination?.total || 0
         }
 
         // Sort by end_at descending
@@ -49,6 +76,7 @@ function ResultList() {
         })
 
         setProblems(all)
+        setTotal(combinedTotal)
       } catch (err) {
         setError(t('results.failedToLoad'))
       } finally {
@@ -56,7 +84,7 @@ function ResultList() {
       }
     }
     fetchResults()
-  }, [])
+  }, [page])
 
   if (loading) {
     return (
@@ -99,6 +127,7 @@ function ResultList() {
           ))}
         </div>
       )}
+      <Pagination page={page} total={total} limit={20} onPageChange={setPage} t={t} />
     </div>
   )
 }
