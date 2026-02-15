@@ -29,15 +29,6 @@ async function selfRegister(req, res, next) {
       throw new ValidationError('Invalid email format')
     }
 
-    // Check for duplicate name
-    const existing = await db.query(
-      'SELECT id FROM agents WHERE LOWER(name) = LOWER($1)',
-      [name.trim()]
-    )
-    if (existing.rows.length > 0) {
-      throw new ConflictError('An agent with this name already exists')
-    }
-
     // Generate token
     const rawToken = generateAgentToken()
     const tokenHash = hashToken(rawToken)
