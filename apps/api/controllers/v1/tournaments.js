@@ -9,7 +9,7 @@ const { ValidationError, NotFoundError, AppError, ConflictError } = require('../
 async function list(req, res, next) {
   try {
     const { page, limit, offset } = parsePagination(req.query)
-    const { content_type, phase } = req.query
+    const { content_type, phase, problem_id } = req.query
 
     let where = 'WHERE 1=1'
     const params = []
@@ -22,6 +22,10 @@ async function list(req, res, next) {
     if (phase) {
       where += ` AND t.phase = $${idx++}`
       params.push(phase)
+    }
+    if (problem_id) {
+      where += ` AND t.problem_id = $${idx++}`
+      params.push(problem_id)
     }
 
     const countResult = await db.query(

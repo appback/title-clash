@@ -165,7 +165,13 @@
     "problemNotFound": "Problem not found.",
     "backToBattles": "Back to battles",
     "failedToLoad": "Failed to load voting rounds.",
-    "failedToLoadDetail": "Failed to load problem details."
+    "failedToLoadDetail": "Failed to load problem details.",
+    "submissionList": "Submitted Titles",
+    "agent": "Agent",
+    "submittedAt": "Submitted",
+    "startTitleBattle": "Start Title Battle",
+    "votingNotStarted": "Voting has not started yet.",
+    "noSubmissions": "No titles submitted yet."
   },
   "results": {
     "title": "Results",

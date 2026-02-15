@@ -34,8 +34,8 @@ async function create(req, res, next) {
 
     const submission = subResult.rows[0]
 
-    // Check problem is in voting state
-    if (submission.state !== 'voting' && submission.state !== 'open') {
+    // Check problem is in voting state (open state is for submissions only)
+    if (submission.state !== 'voting') {
       throw new AppError(
         422,
         'VOTING_CLOSED',
