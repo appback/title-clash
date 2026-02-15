@@ -51,20 +51,22 @@ echo "[4/5] Starting services..."
 ${SSH_CMD} "cd ${REMOTE_DIR}/docker && docker compose -f docker-compose.prod.yml up -d"
 
 # Health check
+DEPLOY_TS=$(${SSH_CMD} "date -u +%Y-%m-%dT%H:%M:%SZ")
 echo "  Waiting for API..."
-sleep 8
-for i in $(seq 1 10); do
-  if ${SSH_CMD} "curl -fsS http://127.0.0.1:3000/api/v1/health" 2>/dev/null; then
-    echo ""
-    echo "  API: OK"
+sleep 5
+for i in $(seq 1 15); do
+  HEALTH=$(${SSH_CMD} "curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/health" 2>/dev/null)
+  if [ "${HEALTH}" = "200" ]; then
+    echo "  API: OK (attempt $i)"
     break
   fi
-  if [ "$i" -eq 10 ]; then
-    echo "  WARNING: API health check failed"
-    ${SSH_CMD} "cd ${REMOTE_DIR}/docker && docker compose -f docker-compose.prod.yml logs --tail=30 api"
+  if [ "$i" -eq 15 ]; then
+    echo "  WARNING: API health check failed (HTTP ${HEALTH})"
+    ${SSH_CMD} "cd ${REMOTE_DIR}/docker && docker compose -f docker-compose.prod.yml logs --since=${DEPLOY_TS} api"
+  else
+    echo "  Attempt $i/15 (HTTP ${HEALTH})..."
+    sleep 2
   fi
-  echo "  Attempt $i/10..."
-  sleep 3
 done
 
 # --- 5. Status ---
