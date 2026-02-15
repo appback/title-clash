@@ -1,6 +1,6 @@
-// Games controller: play, vote, rankings (replaces tournament-based voting)
+// Games controller: play, vote, rankings, human submissions (replaces tournament-based voting)
 const db = require('../../db')
-const { ValidationError, NotFoundError } = require('../../utils/errors')
+const { ValidationError, NotFoundError, ConflictError } = require('../../utils/errors')
 const { generateGame } = require('../../services/matchmaker')
 
 /**
@@ -277,4 +277,144 @@ async function rankings(req, res, next) {
   }
 }
 
-module.exports = { play, vote, rankings }
+/**
+ * POST /api/v1/problems/:id/human-submit
+ * Submit a human title for a problem.
+ */
+async function humanSubmit(req, res, next) {
+  try {
+    const { id } = req.params
+    const { title, author_name } = req.body
+
+    if (!title || String(title).trim() === '') {
+      throw new ValidationError('title is required')
+    }
+
+    // Check problem exists
+    const p = await db.query('SELECT id, state FROM problems WHERE id = $1', [id])
+    if (p.rows.length === 0) throw new NotFoundError('Problem not found')
+
+    const voterId = req.user ? req.user.userId : null
+    const voterToken = !voterId ? (req.voterId || null) : null
+
+    if (!voterId && !voterToken) {
+      throw new ValidationError('Identification required')
+    }
+
+    const result = await db.query(
+      `INSERT INTO human_submissions (problem_id, title, author_name, user_id, user_token)
+       VALUES ($1, $2, $3, $4, $5)
+       RETURNING *`,
+      [id, title.trim(), (author_name || 'Anonymous').trim(), voterId, voterToken]
+    )
+
+    res.status(201).json(result.rows[0])
+  } catch (err) {
+    if (err.code === '23505') {
+      return next(new ConflictError('You already submitted a title for this problem'))
+    }
+    next(err)
+  }
+}
+
+/**
+ * GET /api/v1/problems/:id/human-submissions
+ * List human submissions for a problem.
+ */
+async function humanSubmissions(req, res, next) {
+  try {
+    const { id } = req.params
+
+    const result = await db.query(
+      `SELECT hs.*
+       FROM human_submissions hs
+       WHERE hs.problem_id = $1
+       ORDER BY hs.like_count DESC, hs.created_at ASC`,
+      [id]
+    )
+
+    const voterId = req.user ? req.user.userId : null
+    const voterToken = !voterId ? (req.voterId || null) : null
+    let mySubmission = null
+
+    if (voterId) {
+      mySubmission = result.rows.find(r => r.user_id === voterId) || null
+    } else if (voterToken) {
+      mySubmission = result.rows.find(r => r.user_token === voterToken) || null
+    }
+
+    let likedIds = []
+    if (voterId || voterToken) {
+      const likesRes = await db.query(
+        `SELECT human_submission_id FROM human_submission_likes
+         WHERE ${voterId ? 'user_id = $1' : 'user_token = $1'}`,
+        [voterId || voterToken]
+      )
+      likedIds = likesRes.rows.map(r => r.human_submission_id)
+    }
+
+    res.json({
+      submissions: result.rows,
+      my_submission: mySubmission,
+      liked_ids: likedIds
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+/**
+ * POST /api/v1/problems/:id/human-like
+ * Like a human submission.
+ */
+async function humanLike(req, res, next) {
+  const client = await db.getClient()
+  try {
+    const { id } = req.params
+    const { submission_id } = req.body
+
+    if (!submission_id) throw new ValidationError('submission_id is required')
+
+    const voterId = req.user ? req.user.userId : null
+    const voterToken = !voterId ? (req.voterId || null) : null
+
+    if (!voterId && !voterToken) {
+      throw new ValidationError('Identification required')
+    }
+
+    await client.query('BEGIN')
+
+    // Verify submission belongs to this problem
+    const sub = await client.query(
+      'SELECT id FROM human_submissions WHERE id = $1 AND problem_id = $2',
+      [submission_id, id]
+    )
+    if (sub.rows.length === 0) throw new NotFoundError('Submission not found')
+
+    await client.query(
+      `INSERT INTO human_submission_likes (human_submission_id, user_id, user_token)
+       VALUES ($1, $2, $3)`,
+      [submission_id, voterId, voterToken]
+    )
+
+    await client.query(
+      'UPDATE human_submissions SET like_count = like_count + 1 WHERE id = $1',
+      [submission_id]
+    )
+
+    await client.query('COMMIT')
+    res.status(201).json({ submission_id, liked: true })
+  } catch (err) {
+    if (client) {
+      try { await client.query('ROLLBACK') } catch (_) {}
+    }
+    if (err.code === '23505') {
+      return next(new ConflictError('Already liked'))
+    }
+    next(err)
+  } finally {
+    if (client) client.release()
+  }
+}
+
+module.exports = { play, vote, rankings, humanSubmit, humanSubmissions, humanLike }

@@ -119,6 +119,10 @@ router.get('/rewards/agent/:agentId', jwtAuth, rewardsController.getByAgent)
 router.get('/games/play', optionalJwtAuth, gamesController.play)
 router.post('/games/:id/vote', optionalJwtAuth, voteLimiter, gamesController.vote)
 router.get('/problems/:id/rankings', gamesController.rankings)
+// Human participation (problem-based)
+router.get('/problems/:id/human-submissions', optionalJwtAuth, gamesController.humanSubmissions)
+router.post('/problems/:id/human-submit', optionalJwtAuth, gamesController.humanSubmit)
+router.post('/problems/:id/human-like', optionalJwtAuth, gamesController.humanLike)
 
 // ==========================================
 // Tournaments (legacy, kept for compatibility)

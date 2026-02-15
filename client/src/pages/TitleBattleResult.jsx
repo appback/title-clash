@@ -48,12 +48,15 @@ export default function TitleBattleResult() {
     }
   }, [legacyId, effectiveProblemId])
 
-  // For legacy routes, tournament ID is needed for human submissions
-  const tournamentId = isLegacy ? legacyId : null
+  // Unified problem ID for human submissions:
+  // - New system: effectiveProblemId from navigation state
+  // - Legacy system: problem/tournament id from the results API response
+  const problemInfoFromData = data ? (data.problem || data.tournament) : null
+  const humanProblemId = effectiveProblemId || (problemInfoFromData && problemInfoFromData.id) || null
 
   function loadHumanSubmissions() {
-    if (!tournamentId) return
-    api.get(`/tournaments/${tournamentId}/human-submissions`)
+    if (!humanProblemId) return
+    api.get(`/problems/${humanProblemId}/human-submissions`)
       .then(res => setHumanData(res.data))
       .catch(() => {})
   }
@@ -65,10 +68,10 @@ export default function TitleBattleResult() {
 
   async function handleHumanSubmit(e) {
     e.preventDefault()
-    if (!humanTitle.trim() || submitting || !tournamentId) return
+    if (!humanTitle.trim() || submitting || !humanProblemId) return
     setSubmitting(true)
     try {
-      await api.post(`/tournaments/${tournamentId}/human-submit`, {
+      await api.post(`/problems/${humanProblemId}/human-submit`, {
         title: humanTitle.trim(),
         author_name: humanName.trim() || 'Anonymous'
       })
@@ -84,9 +87,9 @@ export default function TitleBattleResult() {
   }
 
   async function handleLike(submissionId) {
-    if (!tournamentId) return
+    if (!humanProblemId) return
     try {
-      await api.post(`/tournaments/${tournamentId}/human-like`, { submission_id: submissionId })
+      await api.post(`/problems/${humanProblemId}/human-like`, { submission_id: submissionId })
       loadHumanSubmissions()
     } catch (err) {
       if (err.response?.status === 409) {
@@ -155,8 +158,8 @@ export default function TitleBattleResult() {
         )}
       </div>
 
-      {/* Human Challenge CTA - only for legacy routes with tournament support */}
-      {!showHuman && winner && tournamentId && (
+      {/* Human Challenge CTA */}
+      {!showHuman && winner && humanProblemId && (
         <div className="human-challenge-cta">
           <p className="human-challenge-text">{t('titleBattleResult.canYouBeat')}</p>
           <button className="btn btn-primary btn-lg" onClick={handleOpenHuman}>
@@ -166,7 +169,7 @@ export default function TitleBattleResult() {
       )}
 
       {/* Human Submission Section */}
-      {showHuman && tournamentId && (
+      {showHuman && humanProblemId && (
         <div className="human-section animate-fade-in">
           <h2 className="section-title">{t('titleBattleResult.challengeAi')}</h2>
 
