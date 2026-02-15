@@ -2,6 +2,9 @@
 # ===========================================
 # Title-Clash Deploy Script (Run from LOCAL)
 # ===========================================
+# Builds Docker images locally, transfers to EC2.
+# No source code on EC2 — images + compose only.
+#
 # Usage (from project root):
 #   bash scripts/deploy_titleclash.sh
 # ===========================================
@@ -11,38 +14,44 @@ set -euo pipefail
 EC2_HOST="43.201.163.136"
 EC2_USER="ec2-user"
 KEY_FILE="appback.pem"
-REMOTE_DIR="/home/${EC2_USER}/title-clash"
+REMOTE_DIR="/home/${EC2_USER}/titleclash"
 SSH_OPT="-i ${KEY_FILE} -o StrictHostKeyChecking=no"
 SSH_CMD="ssh ${SSH_OPT} ${EC2_USER}@${EC2_HOST}"
+SCP_CMD="scp ${SSH_OPT}"
+IMAGE_TAR="/tmp/titleclash-images.tar"
 
 echo "=========================================="
 echo " Deploying Title-Clash to AWS"
 echo "=========================================="
 
-# --- 1. Sync files via git on remote ---
-echo "[1/4] Syncing code to EC2..."
-${SSH_CMD} "
-  if [ ! -d ${REMOTE_DIR}/.git ]; then
-    git clone https://github.com/appback/title-clash.git ${REMOTE_DIR}
-  else
-    cd ${REMOTE_DIR} && git fetch --all && git reset --hard origin/main
-  fi
-"
+# --- 1. Build images locally ---
+echo "[1/5] Building Docker images locally..."
+docker build -t titleclash-api:latest apps/api/
+docker build -t titleclash-client:latest client/
+echo "  Images built."
 
-# Copy prod compose (contains secrets, not in git)
-echo "  Uploading production files..."
-scp ${SSH_OPT} docker/docker-compose.prod.yml ${EC2_USER}@${EC2_HOST}:${REMOTE_DIR}/docker/
-scp ${SSH_OPT} docker/nginx-host.conf ${EC2_USER}@${EC2_HOST}:${REMOTE_DIR}/docker/
+# --- 2. Save & transfer images ---
+echo "[2/5] Saving and transferring images..."
+docker save titleclash-api:latest titleclash-client:latest -o "${IMAGE_TAR}"
+${SCP_CMD} "${IMAGE_TAR}" ${EC2_USER}@${EC2_HOST}:/tmp/
+rm -f "${IMAGE_TAR}"
+echo "  Images transferred."
 
-echo "  Files synced."
+# --- 3. Upload compose + config, load images on EC2 ---
+echo "[3/5] Setting up EC2..."
+${SSH_CMD} "mkdir -p ${REMOTE_DIR}/docker ${REMOTE_DIR}/db/migrations"
+${SCP_CMD} docker/docker-compose.prod.yml ${EC2_USER}@${EC2_HOST}:${REMOTE_DIR}/docker/
+${SCP_CMD} docker/nginx-host.conf ${EC2_USER}@${EC2_HOST}:${REMOTE_DIR}/docker/
+${SCP_CMD} db/migrations/*.sql ${EC2_USER}@${EC2_HOST}:${REMOTE_DIR}/db/migrations/
+${SSH_CMD} "docker load -i /tmp/titleclash-images.tar && rm -f /tmp/titleclash-images.tar"
+echo "  EC2 ready."
 
-# --- 2. Build & Start ---
-echo "[2/4] Building and starting services..."
-${SSH_CMD} "cd ${REMOTE_DIR}/docker && \
-  docker compose -f docker-compose.prod.yml up -d --build"
+# --- 4. Start services ---
+echo "[4/5] Starting services..."
+${SSH_CMD} "cd ${REMOTE_DIR}/docker && docker compose -f docker-compose.prod.yml up -d"
 
-# --- 3. Health check ---
-echo "[3/4] Waiting for services..."
+# Health check
+echo "  Waiting for API..."
 sleep 8
 for i in $(seq 1 10); do
   if ${SSH_CMD} "curl -fsS http://127.0.0.1:3000/api/v1/health" 2>/dev/null; then
@@ -58,8 +67,8 @@ for i in $(seq 1 10); do
   sleep 3
 done
 
-# --- 4. Status ---
-echo "[4/4] Service status:"
+# --- 5. Status ---
+echo "[5/5] Service status:"
 ${SSH_CMD} "cd ${REMOTE_DIR}/docker && docker compose -f docker-compose.prod.yml ps"
 
 echo ""
