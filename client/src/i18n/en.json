@@ -417,7 +417,8 @@
     "skipBoth": "Skip Both",
     "winRate": "Win Rate",
     "exposures": "Shown",
-    "selections": "Selected"
+    "selections": "Selected",
+    "collecting": "Collecting data"
   },
   "common": {
     "loading": "Loading...",

@@ -145,7 +145,9 @@ export default function TitleBattleResult() {
             </span>
             <span className="result-winner-inline-votes">
               {hasWinRate
-                ? `${winner.win_rate}% ${t('game.winRate')}`
+                ? (winner.exposure_count <= 20
+                  ? t('game.collecting')
+                  : `${winner.win_rate}% ${t('game.winRate')}`)
                 : `${winner.total_votes_received} ${t('common.votes')}`
               }
             </span>
@@ -257,7 +259,9 @@ export default function TitleBattleResult() {
               </div>
               {hasWinRate ? (
                 <div style={{ textAlign: 'right', minWidth: '80px' }}>
-                  <span className="result-rank-votes">{entry.win_rate}%</span>
+                  <span className="result-rank-votes">
+                    {entry.exposure_count <= 20 ? t('game.collecting') : `${entry.win_rate}%`}
+                  </span>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                     {entry.selection_count}/{entry.exposure_count}
                   </div>
