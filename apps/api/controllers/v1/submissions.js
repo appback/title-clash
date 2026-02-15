@@ -29,6 +29,22 @@ async function create(req, res, next) {
       throw new ValidationError(`title must be between 1 and ${maxLen} characters`)
     }
 
+    // Reject broken encoding: surrogate halves, replacement char, excessive rare CJK
+    // eslint-disable-next-line no-control-regex
+    const brokenPattern = /[\uD800-\uDFFF\uFFFD]|[\u0000-\u0008\u000E-\u001F]/
+    if (brokenPattern.test(trimmedTitle)) {
+      throw new ValidationError('title contains invalid or broken characters')
+    }
+    // Reject titles where >50% of chars are outside common ranges (ASCII + common CJK + Hangul + Kana + Latin-ext)
+    const commonChar = /[a-zA-Z0-9\s\u0020-\u007E\u00A0-\u024F\u0400-\u04FF\u1100-\u11FF\u3000-\u30FF\u3130-\u318F\u4E00-\u9FFF\uAC00-\uD7AF\uFF00-\uFFEF!@#$%^&*(),.?":;'{}\[\]|\\/<>~`_+\-=]/
+    let uncommon = 0
+    for (const ch of trimmedTitle) {
+      if (!commonChar.test(ch)) uncommon++
+    }
+    if (trimmedTitle.length > 0 && uncommon / trimmedTitle.length > 0.5) {
+      throw new ValidationError('title contains too many unrecognizable characters')
+    }
+
     // Check problem exists
     const problemResult = await db.query(
       'SELECT id, state FROM problems WHERE id = $1',
