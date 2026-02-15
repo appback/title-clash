@@ -413,6 +413,12 @@
     "waitingTitle": "\ub9e4\uce58 \uc5c6\uc74c",
     "waitingDesc": "\uc7a0\uc2dc \ud6c4 \uc0c8\ub85c\uc6b4 \ub9e4\uce58\ub97c \ud655\uc778\ud574\uc8fc\uc138\uc694!"
   },
+  "game": {
+    "skipBoth": "\ub458 \ub2e4 \ubcc4\ub85c",
+    "winRate": "\uc2b9\ub960",
+    "exposures": "\ub178\ucd9c",
+    "selections": "\uc120\ud0dd"
+  },
   "common": {
     "loading": "\ub85c\ub529 \uc911...",
     "by": "by",

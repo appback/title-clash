@@ -19,16 +19,12 @@ export default function BattlePage() {
     if (loading) return
     setLoading(true)
     try {
-      const res = await api.get('/tournaments', {
-        params: { content_type: 'title_battle', limit: 50 }
-      })
-      const playing = (res.data.data || []).filter(t => t.phase === 'playing')
-      if (playing.length === 0) {
+      const res = await api.get('/games/play')
+      if (res.data.game) {
+        navigate('/battle/title/play')
+      } else {
         navigate('/battle')
-        return
       }
-      const pick = playing[Math.floor(Math.random() * playing.length)]
-      navigate(`/battle/title/${pick.id}`)
     } catch {
       navigate('/battle')
     } finally {

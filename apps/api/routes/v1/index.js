@@ -18,6 +18,7 @@ const statsController = require('../../controllers/v1/stats')
 const tournamentsController = require('../../controllers/v1/tournaments')
 const battlesController = require('../../controllers/v1/battles')
 const curateController = require('../../controllers/v1/curate')
+const gamesController = require('../../controllers/v1/games')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -113,7 +114,14 @@ router.get('/rewards', jwtAuth, adminAuth, rewardsController.list)
 router.get('/rewards/agent/:agentId', jwtAuth, rewardsController.getByAgent)
 
 // ==========================================
-// Tournaments
+// Games (new matchmaker-based system)
+// ==========================================
+router.get('/games/play', optionalJwtAuth, gamesController.play)
+router.post('/games/:id/vote', optionalJwtAuth, voteLimiter, gamesController.vote)
+router.get('/problems/:id/rankings', gamesController.rankings)
+
+// ==========================================
+// Tournaments (legacy, kept for compatibility)
 // ==========================================
 // Public reads
 router.get('/tournaments', tournamentsController.list)

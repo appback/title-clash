@@ -37,19 +37,30 @@ async function top(req, res, next) {
               COALESCE(SUM(r.points), 0)::int AS total_points,
               COUNT(r.id)::int AS reward_count,
               COUNT(CASE WHEN r.reason = 'round_winner' THEN 1 END)::int AS win_count,
-              (SELECT COUNT(*)::int FROM submissions s WHERE s.agent_id = a.id) AS submission_count
+              (SELECT COUNT(*)::int FROM submissions s WHERE s.agent_id = a.id) AS submission_count,
+              (SELECT COALESCE(SUM(s.selection_count), 0)::int FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') AS total_selections,
+              (SELECT COALESCE(SUM(s.exposure_count), 0)::int FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') AS total_exposures
        FROM agents a
        LEFT JOIN rewards r ON r.agent_id = a.id
        WHERE a.is_active = true
        GROUP BY a.id, a.name
        HAVING COALESCE(SUM(r.points), 0) > 0
-       ORDER BY total_points DESC
+          OR (SELECT COALESCE(SUM(s.exposure_count), 0) FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') > 0
+       ORDER BY total_points DESC, total_selections DESC
        LIMIT $1`,
       [limit]
     )
 
+    // Add win_rate to each row
+    const top = result.rows.map(r => ({
+      ...r,
+      win_rate: r.total_exposures > 0
+        ? Math.round(r.total_selections / r.total_exposures * 1000) / 10
+        : 0
+    }))
+
     res.json({
-      top: result.rows
+      top
     })
   } catch (err) {
     next(err)

@@ -9,11 +9,11 @@ import { useTranslatedText } from '../hooks/useTranslation'
 
 export default function TitleBattlePlay() {
   const { t, lang } = useLang()
-  const { id } = useParams()
+  const { id: legacyId } = useParams()
   const navigate = useNavigate()
   const toast = useToast()
 
-  const [tournament, setTournament] = useState(null)
+  const [game, setGame] = useState(null)
   const [matches, setMatches] = useState([])
   const [currentIndex, setCurrentIndex] = useState(0)
   const [voted, setVoted] = useState(false)
@@ -22,31 +22,62 @@ export default function TitleBattlePlay() {
   const [voting, setVoting] = useState(false)
   const [loading, setLoading] = useState(true)
   const [sessionResults, setSessionResults] = useState([])
+  const [totalEntries, setTotalEntries] = useState(0)
 
   useEffect(() => {
-    api.get(`/tournaments/${id}/play`)
-      .then(res => {
-        const data = res.data
-        setTournament(data.tournament)
-        setMatches(data.matches)
-      })
-      .catch(() => toast.error('Failed to load battle'))
-      .finally(() => setLoading(false))
-  }, [id])
+    if (legacyId) {
+      // Backward compatibility: old tournament route
+      api.get(`/tournaments/${legacyId}/play`)
+        .then(res => {
+          const data = res.data
+          setGame({ id: legacyId, problem_title: data.tournament?.problem_title, problem_image_url: data.tournament?.problem_image_url, _legacy: true })
+          setMatches(data.matches)
+        })
+        .catch(() => toast.error('Failed to load battle'))
+        .finally(() => setLoading(false))
+    } else {
+      // New game system
+      api.get('/games/play')
+        .then(res => {
+          const data = res.data
+          if (data.game) {
+            setGame(data.game)
+            setMatches(data.matches || [])
+            setTotalEntries(data.total_entries || 0)
+          }
+        })
+        .catch(() => toast.error('Failed to load battle'))
+        .finally(() => setLoading(false))
+    }
+  }, [legacyId])
 
   const match = matches[currentIndex] || null
   const totalMatches = matches.length
   const isLastMatch = currentIndex === totalMatches - 1
 
   async function handleVote(entryId) {
-    if (voted || voting || !match) return
+    if (voted || voting || !match || !game) return
     setVoting(true)
 
     try {
-      const res = await api.post(`/tournaments/${id}/vote`, { entry_id: entryId })
-      setVoted(true)
-      setVotedEntry(entryId)
-      setVotedTotal(res.data.total_votes)
+      if (game._legacy) {
+        // Legacy tournament vote
+        const res = await api.post(`/tournaments/${legacyId}/vote`, { entry_id: entryId })
+        setVoted(true)
+        setVotedEntry(entryId)
+        setVotedTotal(res.data.total_votes)
+      } else {
+        // New game vote
+        const res = await api.post(`/games/${game.id}/vote`, {
+          match_index: match.index,
+          selected_id: entryId,
+          shown_a_id: match.entry_a.id,
+          shown_b_id: match.entry_b.id
+        })
+        setVoted(true)
+        setVotedEntry(entryId)
+        setVotedTotal(res.data.total_votes || null)
+      }
       setSessionResults(prev => [...prev, {
         winner_id: entryId,
         entry_a: match.entry_a,
@@ -60,20 +91,57 @@ export default function TitleBattlePlay() {
     }
   }
 
+  async function handleSkip() {
+    if (voted || voting || !match || !game) return
+    setVoting(true)
+
+    try {
+      if (!game._legacy) {
+        await api.post(`/games/${game.id}/vote`, {
+          match_index: match.index,
+          action: 'skip',
+          shown_a_id: match.entry_a.id,
+          shown_b_id: match.entry_b.id
+        })
+      }
+      // On skip: move to next match immediately, no result display
+      if (isLastMatch) {
+        navigateToResults()
+      } else {
+        setCurrentIndex(prev => prev + 1)
+        setVoted(false)
+        setVotedEntry(null)
+        setVotedTotal(null)
+      }
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to skip'
+      toast.error(msg)
+    } finally {
+      setVoting(false)
+    }
+  }
+
+  function navigateToResults() {
+    const playedEntryIds = []
+    sessionResults.forEach(r => {
+      if (!playedEntryIds.includes(r.entry_a.id)) playedEntryIds.push(r.entry_a.id)
+      if (!playedEntryIds.includes(r.entry_b.id)) playedEntryIds.push(r.entry_b.id)
+    })
+    if (match) {
+      if (!playedEntryIds.includes(match.entry_a.id)) playedEntryIds.push(match.entry_a.id)
+      if (!playedEntryIds.includes(match.entry_b.id)) playedEntryIds.push(match.entry_b.id)
+    }
+
+    if (game._legacy) {
+      navigate(`/battle/title/${legacyId}/result`, { state: { playedEntryIds } })
+    } else {
+      navigate('/battle/title/result', { state: { problemId: game.problem_id, playedEntryIds } })
+    }
+  }
+
   function handleNext() {
     if (isLastMatch) {
-      // Collect all entry IDs that participated in this session
-      const playedEntryIds = []
-      sessionResults.forEach(r => {
-        if (!playedEntryIds.includes(r.entry_a.id)) playedEntryIds.push(r.entry_a.id)
-        if (!playedEntryIds.includes(r.entry_b.id)) playedEntryIds.push(r.entry_b.id)
-      })
-      // Include last match entries
-      if (match) {
-        if (!playedEntryIds.includes(match.entry_a.id)) playedEntryIds.push(match.entry_a.id)
-        if (!playedEntryIds.includes(match.entry_b.id)) playedEntryIds.push(match.entry_b.id)
-      }
-      navigate(`/battle/title/${id}/result`, { state: { playedEntryIds } })
+      navigateToResults()
       return
     }
     setCurrentIndex(prev => prev + 1)
@@ -105,10 +173,10 @@ export default function TitleBattlePlay() {
         </span>
       </div>
 
-      {/* Image (for title_battle) */}
-      {tournament && tournament.problem_image_url && (
+      {/* Image */}
+      {game && game.problem_image_url && (
         <div className="battle-play-image">
-          <img src={tournament.problem_image_url} alt="" />
+          <img src={game.problem_image_url} alt="" />
           {voted && (
             <div className="battle-play-winner-title animate-fade-in">
               {votedEntry === match.entry_a.id ? match.entry_a.title : match.entry_b.title}
@@ -147,6 +215,20 @@ export default function TitleBattlePlay() {
           lang={lang}
         />
       </div>
+
+      {/* Skip button (before voting) */}
+      {!voted && !game._legacy && (
+        <div style={{ textAlign: 'center', margin: 'var(--spacing-md) 0' }}>
+          <button
+            className="btn btn-secondary btn-sm"
+            onClick={handleSkip}
+            disabled={voting}
+            style={{ opacity: 0.8 }}
+          >
+            {t('game.skipBoth')}
+          </button>
+        </div>
+      )}
 
       {/* After vote: Next or Finish */}
       {voted && (

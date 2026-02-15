@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useParams, useLocation } from 'react-router-dom'
+import { Link, useParams, useLocation, useNavigate } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
 import { useToast } from '../components/Toast'
@@ -8,8 +8,9 @@ import TranslatedText from '../components/TranslatedText'
 
 export default function TitleBattleResult() {
   const { t } = useLang()
-  const { id } = useParams()
+  const { id: legacyId } = useParams()
   const location = useLocation()
+  const navigate = useNavigate()
   const toast = useToast()
   const [data, setData] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -21,18 +22,38 @@ export default function TitleBattleResult() {
   const [humanName, setHumanName] = useState('')
   const [submitting, setSubmitting] = useState(false)
 
-  // Get playedEntryIds from navigation state (if coming from play)
+  // Get state from navigation
   const playedEntryIds = location.state?.playedEntryIds || null
+  const problemIdFromState = location.state?.problemId || null
+
+  // Determine if this is legacy (has :id param) or new (uses state)
+  const isLegacy = !!legacyId
+  const effectiveProblemId = problemIdFromState
 
   useEffect(() => {
-    api.get(`/tournaments/${id}/results`)
-      .then(res => setData(res.data))
-      .catch(() => {})
-      .finally(() => setLoading(false))
-  }, [id])
+    if (isLegacy) {
+      // Legacy: fetch from tournament results
+      api.get(`/tournaments/${legacyId}/results`)
+        .then(res => setData(res.data))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    } else if (effectiveProblemId) {
+      // New: fetch from problem rankings
+      api.get(`/problems/${effectiveProblemId}/rankings`)
+        .then(res => setData(res.data))
+        .catch(() => {})
+        .finally(() => setLoading(false))
+    } else {
+      setLoading(false)
+    }
+  }, [legacyId, effectiveProblemId])
+
+  // For legacy routes, tournament ID is needed for human submissions
+  const tournamentId = isLegacy ? legacyId : null
 
   function loadHumanSubmissions() {
-    api.get(`/tournaments/${id}/human-submissions`)
+    if (!tournamentId) return
+    api.get(`/tournaments/${tournamentId}/human-submissions`)
       .then(res => setHumanData(res.data))
       .catch(() => {})
   }
@@ -44,10 +65,10 @@ export default function TitleBattleResult() {
 
   async function handleHumanSubmit(e) {
     e.preventDefault()
-    if (!humanTitle.trim() || submitting) return
+    if (!humanTitle.trim() || submitting || !tournamentId) return
     setSubmitting(true)
     try {
-      await api.post(`/tournaments/${id}/human-submit`, {
+      await api.post(`/tournaments/${tournamentId}/human-submit`, {
         title: humanTitle.trim(),
         author_name: humanName.trim() || 'Anonymous'
       })
@@ -63,8 +84,9 @@ export default function TitleBattleResult() {
   }
 
   async function handleLike(submissionId) {
+    if (!tournamentId) return
     try {
-      await api.post(`/tournaments/${id}/human-like`, { submission_id: submissionId })
+      await api.post(`/tournaments/${tournamentId}/human-like`, { submission_id: submissionId })
       loadHumanSubmissions()
     } catch (err) {
       if (err.response?.status === 409) {
@@ -76,7 +98,9 @@ export default function TitleBattleResult() {
   if (loading) return <Loading />
   if (!data) return <div className="container"><p>{t('titleBattleResult.resultsNotAvailable')}</p></div>
 
-  const { tournament, rankings, agent_stats, total_votes, participant_count } = data
+  const { problem, rankings, agent_stats, total_votes, participant_count } = data
+  // Legacy format uses 'tournament' key instead of 'problem'
+  const problemInfo = problem || data.tournament
 
   // Filter rankings to show only played entries if available, top 5
   const displayRankings = (playedEntryIds
@@ -87,6 +111,9 @@ export default function TitleBattleResult() {
   const winner = displayRankings.length > 0 ? displayRankings[0] : null
   const medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49']
 
+  // Check if using new rankings format (has win_rate)
+  const hasWinRate = rankings.length > 0 && rankings[0].win_rate !== undefined
+
   return (
     <div className="container animate-fade-in">
       <Link to="/battle" className="btn btn-secondary btn-sm">&larr; {t('battle.back')}</Link>
@@ -94,9 +121,15 @@ export default function TitleBattleResult() {
       <div className="result-header">
         <h1>{t('titleBattleResult.title')}</h1>
 
-        {tournament.problem_image_url && (
+        {problemInfo && problemInfo.problem_image_url && (
           <div className="result-image">
-            <img src={tournament.problem_image_url} alt={tournament.problem_title} />
+            <img src={problemInfo.problem_image_url} alt={problemInfo.problem_title || problemInfo.title} />
+          </div>
+        )}
+        {/* Also check image_url for new API format */}
+        {problemInfo && !problemInfo.problem_image_url && problemInfo.image_url && (
+          <div className="result-image">
+            <img src={problemInfo.image_url} alt={problemInfo.title} />
           </div>
         )}
 
@@ -111,14 +144,17 @@ export default function TitleBattleResult() {
               {t('titleBattleResult.by')} {winner.author_name}
             </span>
             <span className="result-winner-inline-votes">
-              {winner.total_votes_received} {t('common.votes')}
+              {hasWinRate
+                ? `${winner.win_rate}% ${t('game.winRate')}`
+                : `${winner.total_votes_received} ${t('common.votes')}`
+              }
             </span>
           </div>
         )}
       </div>
 
-      {/* Human Challenge CTA */}
-      {!showHuman && winner && (
+      {/* Human Challenge CTA - only for legacy routes with tournament support */}
+      {!showHuman && winner && tournamentId && (
         <div className="human-challenge-cta">
           <p className="human-challenge-text">{t('titleBattleResult.canYouBeat')}</p>
           <button className="btn btn-primary btn-lg" onClick={handleOpenHuman}>
@@ -128,7 +164,7 @@ export default function TitleBattleResult() {
       )}
 
       {/* Human Submission Section */}
-      {showHuman && (
+      {showHuman && tournamentId && (
         <div className="human-section animate-fade-in">
           <h2 className="section-title">{t('titleBattleResult.challengeAi')}</h2>
 
@@ -219,7 +255,16 @@ export default function TitleBattleResult() {
                   {entry.author_name}
                 </span>
               </div>
-              <span className="result-rank-votes">{entry.total_votes_received} {t('common.votes')}</span>
+              {hasWinRate ? (
+                <div style={{ textAlign: 'right', minWidth: '80px' }}>
+                  <span className="result-rank-votes">{entry.win_rate}%</span>
+                  <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
+                    {entry.selection_count}/{entry.exposure_count}
+                  </div>
+                </div>
+              ) : (
+                <span className="result-rank-votes">{entry.total_votes_received} {t('common.votes')}</span>
+              )}
             </div>
           ))}
         </div>
@@ -258,7 +303,7 @@ export default function TitleBattleResult() {
       </div>
 
       <div className="result-actions">
-        <Link to={`/battle/title/${id}/play`} className="btn btn-primary">{t('titleBattleResult.playAgain')}</Link>
+        <Link to="/battle/title/play" className="btn btn-primary">{t('titleBattleResult.playAgain')}</Link>
         <Link to="/battle" className="btn btn-secondary">{t('titleBattleResult.playAnother')}</Link>
       </div>
     </div>

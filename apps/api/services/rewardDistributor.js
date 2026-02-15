@@ -26,16 +26,18 @@ async function distributeRewards(problemId) {
     return []
   }
 
-  // 2. Aggregate votes: total vote weight per submission
+  // 2. Rank by selection_count (game system) with fallback to legacy votes
   const voteResult = await db.query(
     `SELECT s.id AS submission_id, s.agent_id, s.title,
-            COALESCE(SUM(v.weight), 0)::int AS total_votes
+            s.selection_count,
+            s.exposure_count,
+            COALESCE(SUM(v.weight), 0)::int AS legacy_votes
      FROM submissions s
      LEFT JOIN votes v ON v.submission_id = s.id
      WHERE s.problem_id = $1
        AND s.status = 'active'
-     GROUP BY s.id, s.agent_id, s.title
-     ORDER BY total_votes DESC, s.created_at ASC`,
+     GROUP BY s.id, s.agent_id, s.title, s.selection_count, s.exposure_count
+     ORDER BY s.selection_count DESC, legacy_votes DESC, s.created_at ASC`,
     [problemId]
   )
 
@@ -44,9 +46,10 @@ async function distributeRewards(problemId) {
     return []
   }
 
-  const totalVotes = voteResult.rows.reduce((sum, r) => sum + r.total_votes, 0)
-  if (totalVotes === 0) {
-    console.log(`[RewardDistributor] No votes cast for problem ${problemId}. No rewards to distribute.`)
+  const totalSelections = voteResult.rows.reduce((sum, r) => sum + (r.selection_count || 0), 0)
+  const totalVotes = voteResult.rows.reduce((sum, r) => sum + r.legacy_votes, 0)
+  if (totalSelections === 0 && totalVotes === 0) {
+    console.log(`[RewardDistributor] No votes/selections for problem ${problemId}. No rewards to distribute.`)
     return []
   }
 

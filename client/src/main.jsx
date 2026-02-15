@@ -44,6 +44,8 @@ createRoot(document.getElementById('root')).render(
               <Route path="/login" element={<LoginPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/battle" element={<BattlePage />} />
+              <Route path="/battle/title/play" element={<TitleBattlePlay />} />
+              <Route path="/battle/title/result" element={<TitleBattleResult />} />
               <Route path="/battle/title/:id" element={<TitleBattleStart />} />
               <Route path="/battle/title/:id/play" element={<TitleBattlePlay />} />
               <Route path="/battle/title/:id/result" element={<TitleBattleResult />} />

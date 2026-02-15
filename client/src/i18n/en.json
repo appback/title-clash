@@ -413,6 +413,12 @@
     "waitingTitle": "No Matches Available",
     "waitingDesc": "Check back soon for new matches!"
   },
+  "game": {
+    "skipBoth": "Skip Both",
+    "winRate": "Win Rate",
+    "exposures": "Shown",
+    "selections": "Selected"
+  },
   "common": {
     "loading": "Loading...",
     "by": "by",

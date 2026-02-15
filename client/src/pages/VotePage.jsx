@@ -126,7 +126,6 @@ function VoteDetail({ problemId }) {
   const navigate = useNavigate()
   const [problem, setProblem] = useState(null)
   const [submissions, setSubmissions] = useState([])
-  const [tournament, setTournament] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [subPage, setSubPage] = useState(1)
@@ -135,20 +134,8 @@ function VoteDetail({ problemId }) {
   useEffect(() => {
     async function fetchData() {
       try {
-        const [problemRes, tournamentRes] = await Promise.allSettled([
-          api.get('/problems/' + problemId),
-          api.get('/tournaments', { params: { problem_id: problemId } })
-        ])
-
-        if (problemRes.status === 'fulfilled') {
-          setProblem(problemRes.value.data)
-        }
-        if (tournamentRes.status === 'fulfilled') {
-          const tournaments = tournamentRes.value.data.data || []
-          if (tournaments.length > 0) {
-            setTournament(tournaments[0])
-          }
-        }
+        const problemRes = await api.get('/problems/' + problemId)
+        setProblem(problemRes.data)
       } catch (err) {
         setError(t('vote.failedToLoadDetail'))
       } finally {
@@ -217,18 +204,16 @@ function VoteDetail({ problemId }) {
       {error && <div className="error-msg">{error}</div>}
 
       {/* Title Battle CTA */}
-      <div style={{ textAlign: 'center', margin: 'var(--spacing-lg) 0' }}>
-        {tournament ? (
+      {problem.state === 'voting' && (
+        <div style={{ textAlign: 'center', margin: 'var(--spacing-lg) 0' }}>
           <button
             className="btn btn-primary btn-lg"
-            onClick={() => navigate(`/battle/title/${tournament.id}/play`)}
+            onClick={() => navigate('/battle/title/play')}
           >
             {t('vote.startTitleBattle')}
           </button>
-        ) : (
-          <p style={{ color: 'var(--color-text-muted)' }}>{t('vote.votingNotStarted')}</p>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Submission List (read-only) */}
       <div>

@@ -4,10 +4,12 @@ const db = require('../db')
 const { distributeRewards } = require('./rewardDistributor')
 const { triggerAutoSubmissions } = require('./autoSubmitter')
 const { createTournamentsForProblems } = require('./tournamentCreator')
+const { registerNewSubmissions, replenishGamePool } = require('./matchmaker')
 
 /**
  * Start the scheduler.
  * Runs every 1 minute to check and process state transitions.
+ * Runs every 10 minutes for season registration + game pool replenishment.
  */
 function startScheduler() {
   console.log('[Scheduler] Starting round automation scheduler (every 1 minute)')
@@ -17,6 +19,17 @@ function startScheduler() {
       await processTransitions()
     } catch (err) {
       console.error('[Scheduler] Error in round transition:', err)
+    }
+  })
+
+  // Every 10 minutes: season registration + game pool replenishment
+  console.log('[Scheduler] Starting matchmaker scheduler (every 10 minutes)')
+  cron.schedule('*/10 * * * *', async () => {
+    try {
+      await registerNewSubmissions()
+      await replenishGamePool()
+    } catch (err) {
+      console.error('[Scheduler] Error in matchmaker cycle:', err)
     }
   })
 }
@@ -63,9 +76,17 @@ async function processTransitions() {
     console.log(`[Scheduler] Problem '${p.title}' (${p.id}): open -> voting`)
   }
   if (openToVoting.rows.length > 0) {
+    // Legacy tournament creation (deprecated - games system handles voting now)
     const votingIds = openToVoting.rows.map(p => p.id)
     createTournamentsForProblems(votingIds).catch(err => {
       console.error('[Scheduler] Tournament creation error:', err.message)
+    })
+    // Immediately register and generate games for newly voting problems
+    registerNewSubmissions().catch(err => {
+      console.error('[Scheduler] Registration error:', err.message)
+    })
+    replenishGamePool().catch(err => {
+      console.error('[Scheduler] Game pool error:', err.message)
     })
   }
 
