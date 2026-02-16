@@ -3,7 +3,6 @@ const cron = require('node-cron')
 const db = require('../db')
 const { distributeRewards } = require('./rewardDistributor')
 const { triggerAutoSubmissions } = require('./autoSubmitter')
-const { createTournamentsForProblems } = require('./tournamentCreator')
 const { registerNewSubmissions, replenishGamePool } = require('./matchmaker')
 
 /**
@@ -60,9 +59,21 @@ async function processTransitions() {
     })
   }
 
-  // Step 2: open -> voting (submission_deadline reached)
-  // submission_deadline = start_at + (end_at - start_at) * 0.6
-  const openToVoting = await db.query(
+  // Step 2a: open -> voting (submission count >= 16)
+  const openToVotingByCount = await db.query(
+    `UPDATE problems
+     SET state = 'voting', updated_at = now()
+     WHERE state = 'open'
+       AND (SELECT COUNT(*) FROM submissions s
+            WHERE s.problem_id = problems.id AND s.status = 'active') >= 16
+     RETURNING id, title`
+  )
+  for (const p of openToVotingByCount.rows) {
+    console.log(`[Scheduler] Problem '${p.title}' (${p.id}): open -> voting (16+ submissions)`)
+  }
+
+  // Step 2b: open -> voting (time-based, submission_deadline reached)
+  const openToVotingByTime = await db.query(
     `UPDATE problems
      SET state = 'voting', updated_at = now()
      WHERE state = 'open'
@@ -72,15 +83,13 @@ async function processTransitions() {
      RETURNING id, title`,
     [now]
   )
-  for (const p of openToVoting.rows) {
-    console.log(`[Scheduler] Problem '${p.title}' (${p.id}): open -> voting`)
+  for (const p of openToVotingByTime.rows) {
+    console.log(`[Scheduler] Problem '${p.title}' (${p.id}): open -> voting (deadline)`)
   }
-  if (openToVoting.rows.length > 0) {
-    // Legacy tournament creation (deprecated - games system handles voting now)
-    const votingIds = openToVoting.rows.map(p => p.id)
-    createTournamentsForProblems(votingIds).catch(err => {
-      console.error('[Scheduler] Tournament creation error:', err.message)
-    })
+
+  const allNewVoting = [...openToVotingByCount.rows, ...openToVotingByTime.rows]
+  if (allNewVoting.length > 0) {
+    const votingIds = allNewVoting.map(p => p.id)
     // Immediately register and generate games for newly voting problems
     registerNewSubmissions().catch(err => {
       console.error('[Scheduler] Registration error:', err.message)
