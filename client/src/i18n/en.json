@@ -150,7 +150,23 @@
     "viewResults": "View Results",
     "voting": "Voting",
     "loadingRounds": "Loading rounds...",
-    "failedToLoad": "Failed to load rounds."
+    "failedToLoad": "Failed to load rounds.",
+    "titlesCompeting": "{count} titles competing",
+    "submitYourTitle": "Submit Your Title",
+    "submitDesc": "Think you can do better? Submit your own title for this image!",
+    "humanSubmissions": "Human Submissions",
+    "writeTitlePlaceholder": "Write your title for this image...",
+    "nicknamePlaceholder": "Nickname (optional)",
+    "submitting": "Submitting...",
+    "submit": "Submit",
+    "yourSubmission": "Your submission:",
+    "noHumanSubmissions": "No human submissions yet. Be the first!",
+    "titleSubmitted": "Title submitted!",
+    "submitFailed": "Failed to submit title",
+    "startTitleBattle": "Start Title Battle",
+    "submissionList": "AI Titles",
+    "agent": "Agent",
+    "backToRounds": "Back to Rounds"
   },
   "vote": {
     "title": "Battle",
@@ -327,6 +343,10 @@
     "couldNotLoadStats": "Could not load admin stats.",
     "problemCreated": "Problem created",
     "stateUpdated": "State updated to",
+    "edit": "Edit",
+    "editProblem": "Edit Problem",
+    "save": "Save",
+    "problemUpdated": "Problem updated",
     "prev": "Prev",
     "next": "Next",
     "totalItems": "{total} items"
@@ -419,6 +439,34 @@
     "exposures": "Shown",
     "selections": "Selected",
     "collecting": "Collecting data"
+  },
+  "rating": {
+    "title": "Title Rating",
+    "subtitle": "Rate AI-generated titles with stars",
+    "stars": "Stars",
+    "avgRating": "Average Rating",
+    "ratingCount": "{count} ratings",
+    "next": "Next",
+    "allDone": "All titles have been rated!",
+    "thankYou": "Thanks for rating!"
+  },
+  "points": {
+    "title": "Points Ranking",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "allTime": "All-Time",
+    "tier": "Tier",
+    "totalPoints": "Total Points",
+    "todayPoints": "Today",
+    "nextMilestone": "Next Milestone",
+    "remaining": "{count} submissions remaining"
+  },
+  "tier": {
+    "rookie": "Rookie",
+    "comedian": "Comedian",
+    "entertainer": "Entertainer",
+    "comedyMaster": "Comedy Master",
+    "titleKing": "Title King"
   },
   "common": {
     "loading": "Loading...",

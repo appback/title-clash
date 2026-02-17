@@ -2999,6 +2999,16 @@ img {
   cursor: default;
 }
 
+/* Auto-advance: brief highlight on selected card before auto-next */
+.match-card.auto-advance-selected,
+.image-battle-card.auto-advance-selected {
+  border-color: #4CAF50 !important;
+  background: rgba(76, 175, 80, 0.08);
+  transform: scale(1.02);
+  transition: all 0.3s ease;
+  pointer-events: none;
+}
+
 .match-card-title {
   font-size: var(--text-lg);
   font-style: italic;
@@ -3180,13 +3190,12 @@ img {
   border-radius: var(--radius-md);
   overflow: hidden;
   margin-bottom: var(--spacing-md);
-  aspect-ratio: 4/3;
 }
 
 .image-battle-img img {
   width: 100%;
-  height: 100%;
-  object-fit: cover;
+  max-height: 400px;
+  object-fit: contain;
 }
 
 /* Human vs AI badges */
@@ -3597,6 +3606,12 @@ img {
   border-color: var(--color-success);
 }
 
+[data-theme="dark"] .match-card.auto-advance-selected,
+[data-theme="dark"] .image-battle-card.auto-advance-selected {
+  background: rgba(76, 175, 80, 0.15);
+  border-color: #4CAF50 !important;
+}
+
 [data-theme="dark"] .result-winner {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
 }
@@ -3958,4 +3973,154 @@ img {
     opacity: 1;
     transform: translateY(0);
   }
+}
+
+/* ========================================
+   Tab Bar
+   ======================================== */
+
+.tab-bar {
+  display: flex;
+  gap: var(--spacing-xs);
+  margin-bottom: var(--spacing-lg);
+  border-bottom: 2px solid var(--color-border);
+  padding-bottom: 0;
+}
+
+.tab-btn {
+  padding: var(--spacing-sm) var(--spacing-lg);
+  border: none;
+  background: none;
+  color: var(--color-text-secondary);
+  font-size: var(--text-base);
+  font-weight: 500;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+}
+
+.tab-btn:hover {
+  color: var(--color-text);
+}
+
+.tab-btn.active {
+  color: var(--color-primary);
+  border-bottom-color: var(--color-primary);
+  font-weight: 600;
+}
+
+/* ========================================
+   Title Rating Page
+   ======================================== */
+
+.rating-card {
+  max-width: 600px;
+  margin: 0 auto;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  box-shadow: var(--shadow-md);
+}
+
+.rating-image {
+  width: 100%;
+  max-height: 400px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-bg);
+}
+
+.rating-image img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  max-height: 400px;
+}
+
+.rating-content {
+  padding: var(--spacing-lg);
+  text-align: center;
+}
+
+.rating-problem-title {
+  font-size: var(--text-sm);
+  color: var(--color-text-muted);
+  margin-bottom: var(--spacing-sm);
+}
+
+.rating-title-text {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-lg);
+  padding: 0;
+  border: none;
+  color: var(--color-text);
+}
+
+.rating-stars-section {
+  margin-bottom: var(--spacing-lg);
+}
+
+.rating-stars-label {
+  display: block;
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  margin-bottom: var(--spacing-sm);
+}
+
+.star-selector {
+  display: inline-flex;
+  gap: var(--spacing-xs);
+}
+
+.star-btn {
+  font-size: 2.5rem;
+  cursor: pointer;
+  color: var(--color-border);
+  -webkit-text-stroke: 1px var(--color-text-secondary);
+  text-shadow: 0 0 2px rgba(255, 255, 255, 0.3);
+  transition: color var(--transition-fast), transform var(--transition-fast);
+  user-select: none;
+  line-height: 1;
+}
+
+.star-btn:hover {
+  transform: scale(1.15);
+}
+
+.star-btn.star-filled {
+  color: var(--color-gold);
+  -webkit-text-stroke: 0;
+  text-shadow: 0 0 4px rgba(255, 215, 0, 0.3);
+}
+
+.rating-result {
+  margin-bottom: var(--spacing-lg);
+}
+
+.rating-actions {
+  display: flex;
+  gap: var(--spacing-md);
+  justify-content: center;
+}
+
+/* Tier badge */
+.tier-badge {
+  display: inline-block;
+  padding: 1px 6px;
+  border-radius: var(--radius-sm);
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  vertical-align: middle;
+}
+
+/* Short ID (problem identifier) */
+.short-id {
+  font-family: var(--font-mono, 'Consolas', 'Monaco', monospace);
+  font-size: 0.9em;
+  color: var(--color-text-secondary);
 }

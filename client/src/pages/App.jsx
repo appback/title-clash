@@ -5,6 +5,7 @@ import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import Countdown from '../components/Countdown'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 export default function App() {
   const { t } = useLang()
@@ -99,21 +100,21 @@ export default function App() {
       <section className="section animate-slide-up">
         <div className="section-header">
           <h2>{t('home.activeVotingRounds')}</h2>
-          <Link to="/vote" className="section-link">{t('home.viewAll')}</Link>
+          <Link to="/rounds" className="section-link">{t('home.viewAll')}</Link>
         </div>
         {votingProblems.length === 0 ? (
           <EmptyState message={t('home.noActiveVoting')} actionLabel={t('home.viewRounds')} actionTo="/rounds" />
         ) : (
           <div className="card-grid">
             {votingProblems.map(p => (
-              <Link to={'/vote/' + p.id} key={p.id} className="card card-clickable">
+              <Link to={'/rounds/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
-                    <img src={p.image_url} alt={p.title} loading="lazy" />
+                    <img src={p.image_url} alt={shortId(p.id)} loading="lazy" />
                   </div>
                 )}
                 <div className="card-body">
-                  <h3 className="card-title">{p.title}</h3>
+                  <h3 className="card-title"><span className="short-id">{shortId(p.id)}</span></h3>
                   <span className="badge badge-voting">{t('home.voting')}</span>
                   {p.end_at && (
                     <div className="card-meta">
@@ -141,11 +142,11 @@ export default function App() {
               <Link to={'/results/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
-                    <img src={p.image_url} alt={p.title} loading="lazy" />
+                    <img src={p.image_url} alt={shortId(p.id)} loading="lazy" />
                   </div>
                 )}
                 <div className="card-body">
-                  <h3 className="card-title">{p.title}</h3>
+                  <h3 className="card-title"><span className="short-id">{shortId(p.id)}</span></h3>
                   <span className="badge badge-closed">{t('home.closed')}</span>
                 </div>
               </Link>

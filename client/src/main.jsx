@@ -1,13 +1,12 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { ToastProvider } from './components/Toast'
 import { LangProvider } from './i18n'
 import Nav from './components/Nav'
 import Footer from './components/Footer'
 import App from './pages/App'
 import RoundsPage from './pages/RoundsPage'
-import VotePage from './pages/VotePage'
 import ResultsPage from './pages/ResultsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import AdminPage from './pages/AdminPage'
@@ -18,6 +17,7 @@ import TitleBattlePlay from './pages/TitleBattlePlay'
 import TitleBattleResult from './pages/TitleBattleResult'
 import ImageBattlePlay from './pages/ImageBattlePlay'
 import HumanVsAiBattlePlay from './pages/HumanVsAiBattlePlay'
+import TitleRatingPage from './pages/TitleRatingPage'
 import './styles.css'
 
 // Apply saved theme on load
@@ -36,8 +36,9 @@ createRoot(document.getElementById('root')).render(
             <Routes>
               <Route path="/" element={<App />} />
               <Route path="/rounds" element={<RoundsPage />} />
-              <Route path="/vote" element={<VotePage />} />
-              <Route path="/vote/:problemId" element={<VotePage />} />
+              <Route path="/rounds/:problemId" element={<RoundsPage />} />
+              <Route path="/vote" element={<Navigate to="/rounds" replace />} />
+              <Route path="/vote/:problemId" element={<Navigate to="/rounds" replace />} />
               <Route path="/results" element={<ResultsPage />} />
               <Route path="/results/:problemId" element={<ResultsPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
@@ -51,6 +52,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/battle/title/:id/result" element={<TitleBattleResult />} />
               <Route path="/battle/image/play" element={<ImageBattlePlay />} />
               <Route path="/battle/human-vs-ai/play" element={<HumanVsAiBattlePlay />} />
+              <Route path="/battle/rating" element={<TitleRatingPage />} />
             </Routes>
           </main>
           <Footer />

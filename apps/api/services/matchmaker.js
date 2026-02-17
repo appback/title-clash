@@ -19,25 +19,35 @@ function classifyTier(exposureCount) {
 /**
  * Compute selection weight for a submission.
  * Higher weight = more likely to be picked for a game.
+ * avgRating/ratingCount: optional title rating data for weight adjustment.
  */
-function computeWeight(tier, winRate, exposureCount) {
+function computeWeight(tier, winRate, exposureCount, avgRating, ratingCount) {
+  let baseWeight
   switch (tier) {
     case 'L0':
-      // New submissions get high weight that decreases as they get exposure
-      return Math.max(10, 100 - exposureCount * 3)
+      baseWeight = Math.max(10, 100 - exposureCount * 3)
+      break
     case 'L1':
-      if (exposureCount === 0) return 10 // shouldn't happen in L1, safety
-      if (winRate < 0.3) return 15 + winRate * 50
-      return 40 + winRate * 30
+      if (exposureCount === 0) { baseWeight = 10; break }
+      baseWeight = winRate < 0.3 ? 15 + winRate * 50 : 40 + winRate * 30
+      break
     case 'L2':
-      if (winRate < 0.2) return 15
-      return 30 + winRate * 50
+      baseWeight = winRate < 0.2 ? 15 : 30 + winRate * 50
+      break
     case 'L3':
-      if (winRate < 0.1) return 3
-      return 20 + winRate * 60
+      baseWeight = winRate < 0.1 ? 3 : 20 + winRate * 60
+      break
     default:
-      return 10
+      baseWeight = 10
   }
+
+  // Rating boost: if enough ratings exist, adjust weight (0.5x ~ 1.5x)
+  if (ratingCount >= 3 && avgRating !== null && avgRating !== undefined) {
+    const ratingMultiplier = 0.5 + (avgRating / 5.0)
+    baseWeight = Math.round(baseWeight * ratingMultiplier)
+  }
+
+  return Math.max(1, baseWeight)
 }
 
 /**
@@ -80,6 +90,7 @@ async function generateGame(problemId) {
   // Get eligible submissions
   const result = await db.query(
     `SELECT s.id, s.title, s.exposure_count, s.selection_count, s.skip_count,
+            s.avg_rating, s.rating_count,
             a.name AS author_name, s.model_name
      FROM submissions s
      LEFT JOIN agents a ON a.id = s.agent_id
@@ -103,7 +114,7 @@ async function generateGame(problemId) {
       ...s,
       _tier: tier,
       _winRate: winRate,
-      _weight: computeWeight(tier, winRate, s.exposure_count)
+      _weight: computeWeight(tier, winRate, s.exposure_count, s.avg_rating ? parseFloat(s.avg_rating) : null, s.rating_count || 0)
     }
   })
 

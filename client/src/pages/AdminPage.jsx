@@ -7,6 +7,7 @@ import Modal from '../components/Modal'
 import ImageUpload from '../components/ImageUpload'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 function Pagination({ page, total, limit, onPageChange, t }) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
@@ -93,8 +94,11 @@ function ProblemsAdmin() {
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
   const [showCreate, setShowCreate] = useState(false)
-  const [form, setForm] = useState({ title: '', description: '', image_url: '', start_at: '', end_at: '' })
+  const [form, setForm] = useState({ description: '', image_url: '', start_at: '', end_at: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [editProblem, setEditProblem] = useState(null)
+  const [editForm, setEditForm] = useState({ description: '', image_url: '' })
+  const [editSubmitting, setEditSubmitting] = useState(false)
   const toast = useToast()
   const token = localStorage.getItem('admin_token')
 
@@ -114,7 +118,6 @@ function ProblemsAdmin() {
     setSubmitting(true)
     try {
       await adminApi.post('/problems', {
-        title: form.title,
         description: form.description,
         image_url: form.image_url || undefined,
         start_at: form.start_at ? new Date(form.start_at).toISOString() : undefined,
@@ -122,7 +125,7 @@ function ProblemsAdmin() {
       })
       toast.success(t('admin.problemCreated'))
       setShowCreate(false)
-      setForm({ title: '', description: '', image_url: '', start_at: '', end_at: '' })
+      setForm({ description: '', image_url: '', start_at: '', end_at: '' })
       fetchProblems()
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to create problem')
@@ -138,6 +141,35 @@ function ProblemsAdmin() {
     } catch (err) {
       toast.error(err.response?.data?.message || 'Failed to update state')
     }
+  }
+
+  function openEdit(problem) {
+    setEditProblem(problem)
+    setEditForm({
+      description: problem.description || '',
+      image_url: problem.image_url || ''
+    })
+  }
+
+  async function handleEditSave() {
+    if (!token || !editProblem) return
+    setEditSubmitting(true)
+    try {
+      const changes = {}
+      if (editForm.description !== (editProblem.description || '')) changes.description = editForm.description
+      if (editForm.image_url !== (editProblem.image_url || '')) changes.image_url = editForm.image_url
+      if (Object.keys(changes).length === 0) {
+        toast.info(t('admin.noChanges'))
+        setEditSubmitting(false)
+        return
+      }
+      await adminApi.patch('/problems/' + editProblem.id, changes)
+      toast.success(t('admin.problemUpdated'))
+      setEditProblem(null)
+      fetchProblems()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update problem')
+    } finally { setEditSubmitting(false) }
   }
 
   if (loading) return <Loading message={t('admin.loadingProblems')} />
@@ -162,7 +194,8 @@ function ProblemsAdmin() {
         <table className="table">
           <thead>
             <tr>
-              <th>{t('admin.titleLabel')}</th>
+              <th>{t('admin.image')}</th>
+              <th>ID</th>
               <th>{t('admin.state')}</th>
               <th>{t('admin.start')}</th>
               <th>{t('admin.end')}</th>
@@ -172,12 +205,25 @@ function ProblemsAdmin() {
           <tbody>
             {problems.map(p => (
               <tr key={p.id}>
-                <td>{p.title}</td>
+                <td>
+                  {p.image_url ? (
+                    <img src={p.image_url} alt="" style={{ width: 50, height: 50, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                  ) : (
+                    <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>-</span>
+                  )}
+                </td>
+                <td><span className="short-id">{shortId(p.id)}</span></td>
                 <td><span className={'badge badge-' + p.state}>{p.state}</span></td>
                 <td>{p.start_at ? new Date(p.start_at).toLocaleString() : '-'}</td>
                 <td>{p.end_at ? new Date(p.end_at).toLocaleString() : '-'}</td>
                 <td>
                   <div className="btn-group">
+                    <button
+                      className="btn btn-primary btn-sm"
+                      onClick={() => openEdit(p)}
+                    >
+                      {t('admin.edit')}
+                    </button>
                     {(nextStates[p.state] || []).map(ns => (
                       <button
                         key={ns}
@@ -204,16 +250,12 @@ function ProblemsAdmin() {
         footer={
           <>
             <button className="btn btn-secondary" onClick={() => setShowCreate(false)}>{t('admin.cancel')}</button>
-            <button className="btn btn-primary" onClick={handleCreate} disabled={submitting || !form.title}>
+            <button className="btn btn-primary" onClick={handleCreate} disabled={submitting}>
               {submitting ? t('admin.creating') : t('admin.create')}
             </button>
           </>
         }
       >
-        <div className="form-group">
-          <label className="input-label">{t('admin.titleLabel')} *</label>
-          <input className="input" value={form.title} onChange={e => setForm({...form, title: e.target.value})} />
-        </div>
         <div className="form-group">
           <label className="input-label">{t('admin.description')}</label>
           <textarea className="input textarea" value={form.description}
@@ -238,6 +280,40 @@ function ProblemsAdmin() {
             <input className="input" type="datetime-local" value={form.end_at}
               onChange={e => setForm({...form, end_at: e.target.value})} />
           </div>
+        </div>
+      </Modal>
+
+      {/* Edit Problem Modal */}
+      <Modal
+        open={!!editProblem}
+        onClose={() => setEditProblem(null)}
+        title={t('admin.editProblem')}
+        footer={
+          <>
+            <button className="btn btn-secondary" onClick={() => setEditProblem(null)}>{t('admin.cancel')}</button>
+            <button className="btn btn-primary" onClick={handleEditSave} disabled={editSubmitting}>
+              {editSubmitting ? t('admin.saving') : t('admin.save')}
+            </button>
+          </>
+        }
+      >
+        {editProblem && editForm.image_url && (
+          <div className="form-group" style={{ textAlign: 'center' }}>
+            <img src={editForm.image_url} alt="" style={{ maxWidth: '100%', maxHeight: 200, borderRadius: 'var(--radius-md)', objectFit: 'contain' }} />
+          </div>
+        )}
+        <div className="form-group">
+          <label className="input-label">{t('admin.image')}</label>
+          <ImageUpload
+            value={editForm.image_url}
+            onChange={url => setEditForm({...editForm, image_url: url})}
+            token={token}
+          />
+        </div>
+        <div className="form-group">
+          <label className="input-label">{t('admin.description')}</label>
+          <textarea className="input textarea" value={editForm.description}
+            onChange={e => setEditForm({...editForm, description: e.target.value})} />
         </div>
       </Modal>
     </div>
@@ -341,7 +417,7 @@ function SubmissionsAdmin() {
             <tbody>
               {submissions.map(s => (
                 <tr key={s.id}>
-                  <td title={s.problem_title}>{s.title}</td>
+                  <td>{s.title}</td>
                   <td>{s.agent_name || '-'}</td>
                   <td>{s.model_name || '-'}{s.model_version ? ` (${s.model_version})` : ''}</td>
                   <td><span className={'badge badge-' + s.status}>{s.status}</span></td>
@@ -571,7 +647,7 @@ function StatisticsAdmin() {
               <tbody>
                 {data.round_activity.map(r => (
                   <tr key={r.id}>
-                    <td>{r.title}</td>
+                    <td><span className="short-id">{shortId(r.id)}</span></td>
                     <td><span className={'badge badge-' + r.state}>{r.state}</span></td>
                     <td>{r.submission_count}</td>
                     <td>{r.vote_count}</td>

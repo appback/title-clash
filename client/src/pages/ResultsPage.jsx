@@ -7,6 +7,7 @@ import Breadcrumb from '../components/Breadcrumb'
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 function Pagination({ page, total, limit, onPageChange, t }) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
@@ -111,11 +112,11 @@ function ResultList() {
             <Link to={'/results/' + p.id} key={p.id} className="card card-clickable">
               {p.image_url && (
                 <div className="card-image">
-                  <img src={p.image_url} alt={p.title} loading="lazy" />
+                  <img src={p.image_url} alt={shortId(p.id)} loading="lazy" />
                 </div>
               )}
               <div className="card-body">
-                <h3 className="card-title">{p.title}</h3>
+                <h3 className="card-title"><span className="short-id">{shortId(p.id)}</span></h3>
                 <span className={'badge ' + (p.state === 'archived' ? 'badge-archived' : 'badge-closed')}>
                   {p.state === 'archived' ? t('results.archived') : t('results.closed')}
                 </span>
@@ -175,17 +176,17 @@ function ResultDetail({ problemId }) {
     <div className="container animate-fade-in">
       <Breadcrumb items={[
         { label: t('results.title'), to: '/results' },
-        { label: problem.title }
+        { label: shortId(problem.id) }
       ]} />
 
       <div className="problem-detail animate-fade-in">
         {problem.image_url && (
           <div className="problem-image">
-            <img src={problem.image_url} alt={problem.title} loading="lazy" />
+            <img src={problem.image_url} alt={shortId(problem.id)} loading="lazy" />
           </div>
         )}
         <div className="problem-info">
-          <h1>{problem.title}</h1>
+          <h1><span className="short-id">{shortId(problem.id)}</span></h1>
           {problem.description && <p className="problem-desc">{problem.description}</p>}
           <div className="problem-meta">
             <span className={'badge ' + (problem.state === 'archived' ? 'badge-archived' : 'badge-closed')}>

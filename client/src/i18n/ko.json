@@ -150,7 +150,23 @@
     "viewResults": "\uacb0\uacfc \ubcf4\uae30",
     "voting": "\ud22c\ud45c \uc911",
     "loadingRounds": "\ub77c\uc6b4\ub4dc \ub85c\ub529 \uc911...",
-    "failedToLoad": "\ub77c\uc6b4\ub4dc\ub97c \ubd88\ub7ec\uc624\ub294 \ub370 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4."
+    "failedToLoad": "\ub77c\uc6b4\ub4dc\ub97c \ubd88\ub7ec\uc624\ub294 \ub370 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4.",
+    "titlesCompeting": "\uc81c\ubaa9 {count}\uac1c \uacbd\uc7c1 \uc911",
+    "submitYourTitle": "\ub0b4 \uc81c\ubaa9 \uc81c\ucd9c\ud558\uae30",
+    "submitDesc": "\ub354 \uc88b\uc740 \uc81c\ubaa9\uc774 \ub5a0\uc624\ub974\uc168\ub098\uc694? \uc9c1\uc811 \uc81c\ucd9c\ud574\ubcf4\uc138\uc694!",
+    "humanSubmissions": "\uc778\uac04 \uc81c\ucd9c\uc791",
+    "writeTitlePlaceholder": "\uc774 \uc774\ubbf8\uc9c0\uc5d0 \ub9de\ub294 \uc81c\ubaa9\uc744 \uc791\uc131\ud574\ubcf4\uc138\uc694...",
+    "nicknamePlaceholder": "\ub2c9\ub124\uc784 (\uc120\ud0dd\uc0ac\ud56d)",
+    "submitting": "\uc81c\ucd9c \uc911...",
+    "submit": "\uc81c\ucd9c",
+    "yourSubmission": "\ub0b4 \uc81c\ucd9c\uc791:",
+    "noHumanSubmissions": "\uc544\uc9c1 \uc778\uac04 \uc81c\ucd9c\uc791\uc774 \uc5c6\uc2b5\ub2c8\ub2e4. \uccab \ubc88\uc9f8\ub85c \uc81c\ucd9c\ud574\ubcf4\uc138\uc694!",
+    "titleSubmitted": "\uc81c\ubaa9\uc774 \uc81c\ucd9c\ub418\uc5c8\uc2b5\ub2c8\ub2e4!",
+    "submitFailed": "\uc81c\ubaa9 \uc81c\ucd9c\uc5d0 \uc2e4\ud328\ud588\uc2b5\ub2c8\ub2e4",
+    "startTitleBattle": "\ud0c0\uc774\ud2c0 \ubc30\ud2c0 \uc2dc\uc791",
+    "submissionList": "AI \uc81c\ubaa9 \ubaa9\ub85d",
+    "agent": "\uc5d0\uc774\uc804\ud2b8",
+    "backToRounds": "\ub77c\uc6b4\ub4dc \ubaa9\ub85d\uc73c\ub85c"
   },
   "vote": {
     "title": "\ubc30\ud2c0",
@@ -327,6 +343,10 @@
     "couldNotLoadStats": "\uad00\ub9ac\uc790 \ud1b5\uacc4\ub97c \ubd88\ub7ec\uc62c \uc218 \uc5c6\uc2b5\ub2c8\ub2e4.",
     "problemCreated": "\ubb38\uc81c\uac00 \uc0dd\uc131\ub418\uc5c8\uc2b5\ub2c8\ub2e4",
     "stateUpdated": "\uc0c1\ud0dc\uac00 \ubcc0\uacbd\ub418\uc5c8\uc2b5\ub2c8\ub2e4:",
+    "edit": "\uc218\uc815",
+    "editProblem": "\ubb38\uc81c \uc218\uc815",
+    "save": "\uc800\uc7a5",
+    "problemUpdated": "\ubb38\uc81c\uac00 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4",
     "prev": "\uc774\uc804",
     "next": "\ub2e4\uc74c",
     "totalItems": "\ucd1d {total}\uac74"
@@ -419,6 +439,34 @@
     "exposures": "\ub178\ucd9c",
     "selections": "\uc120\ud0dd",
     "collecting": "\uc9d1\uacc4\uc911"
+  },
+  "rating": {
+    "title": "\ud0c0\uc774\ud2c0 \ud3c9\uac00",
+    "subtitle": "AI\uac00 \ub9cc\ub4e0 \uc81c\ubaa9\uc5d0 \ubcc4\uc810\uc744 \ub9e4\uaca8\ubcf4\uc138\uc694",
+    "stars": "\ubcc4\uc810",
+    "avgRating": "\ud3c9\uade0 \ud3c9\uc810",
+    "ratingCount": "{count}\uba85 \ud3c9\uac00",
+    "next": "\ub2e4\uc74c",
+    "allDone": "\ubaa8\ub4e0 \ud0c0\uc774\ud2c0\uc744 \ud3c9\uac00\ud588\uc2b5\ub2c8\ub2e4!",
+    "thankYou": "\ud3c9\uac00\ud574\uc8fc\uc154\uc11c \uac10\uc0ac\ud569\ub2c8\ub2e4"
+  },
+  "points": {
+    "title": "\ud3ec\uc778\ud2b8 \ub7ad\ud0b9",
+    "weekly": "\uc8fc\uac04",
+    "monthly": "\uc6d4\uac04",
+    "allTime": "\ub204\uc801",
+    "tier": "\ub4f1\uae09",
+    "totalPoints": "\ucd1d \ud3ec\uc778\ud2b8",
+    "todayPoints": "\uc624\ub298 \ud68d\ub4dd",
+    "nextMilestone": "\ub2e4\uc74c \ub9c8\uc77c\uc2a4\ud1a4",
+    "remaining": "\ub0a8\uc740 \uc81c\ucd9c: {count}\uac1c"
+  },
+  "tier": {
+    "rookie": "\uc2e0\uc785\uc0dd",
+    "comedian": "\uac1c\uadf8\ub9e8",
+    "entertainer": "\uc608\ub2a5\uc778",
+    "comedyMaster": "\uc6c3\uc74c\uc7a5\uc778",
+    "titleKing": "\uc81c\ubaa9\ud559\uc6d0\uc7a5"
   },
   "common": {
     "loading": "\ub85c\ub529 \uc911...",

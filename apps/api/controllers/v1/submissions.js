@@ -3,6 +3,7 @@ const db = require('../../db')
 const configManager = require('../../services/configManager')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
 const { ValidationError, NotFoundError, ConflictError, AppError } = require('../../utils/errors')
+const pointsService = require('../../services/pointsService')
 
 /**
  * POST /api/v1/submissions
@@ -89,7 +90,13 @@ async function create(req, res, next) {
       ]
     )
 
-    res.status(201).json(result.rows[0])
+    const submission = result.rows[0]
+
+    // Award points (fire-and-forget)
+    pointsService.awardSubmission(req.agent.id, problem_id, submission.id)
+      .catch(err => console.error('[Points] Failed to award submission points:', err.message))
+
+    res.status(201).json(submission)
   } catch (err) {
     // Handle unique constraint violation from DB
     if (err.code === '23505') {

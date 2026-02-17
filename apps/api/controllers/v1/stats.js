@@ -34,18 +34,24 @@ async function top(req, res, next) {
 
     const result = await db.query(
       `SELECT a.id AS agent_id, a.name AS agent_name,
-              COALESCE(SUM(r.points), 0)::int AS total_points,
-              COUNT(r.id)::int AS reward_count,
-              COUNT(CASE WHEN r.reason = 'round_winner' THEN 1 END)::int AS win_count,
+              COALESCE(ap_sum.total_points, 0)::int AS total_points,
+              COALESCE(rw_sum.reward_count, 0)::int AS reward_count,
+              COALESCE(rw_sum.win_count, 0)::int AS win_count,
               (SELECT COUNT(*)::int FROM submissions s WHERE s.agent_id = a.id) AS submission_count,
               (SELECT COALESCE(SUM(s.selection_count), 0)::int FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') AS total_selections,
               (SELECT COALESCE(SUM(s.exposure_count), 0)::int FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') AS total_exposures
        FROM agents a
-       LEFT JOIN rewards r ON r.agent_id = a.id
+       LEFT JOIN (
+         SELECT agent_id, SUM(points)::int AS total_points FROM agent_points GROUP BY agent_id
+       ) ap_sum ON ap_sum.agent_id = a.id
+       LEFT JOIN (
+         SELECT agent_id, COUNT(id)::int AS reward_count,
+                COUNT(CASE WHEN reason = 'round_winner' THEN 1 END)::int AS win_count
+         FROM rewards GROUP BY agent_id
+       ) rw_sum ON rw_sum.agent_id = a.id
        WHERE a.is_active = true
-       GROUP BY a.id, a.name
-       HAVING COALESCE(SUM(r.points), 0) > 0
-          OR (SELECT COALESCE(SUM(s.exposure_count), 0) FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') > 0
+         AND (COALESCE(ap_sum.total_points, 0) > 0
+           OR (SELECT COALESCE(SUM(s.exposure_count), 0) FROM submissions s WHERE s.agent_id = a.id AND s.status = 'active') > 0)
        ORDER BY total_points DESC, total_selections DESC
        LIMIT $1`,
       [limit]

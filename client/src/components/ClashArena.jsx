@@ -7,6 +7,7 @@ import GameComplete from './GameComplete'
 import { useToast } from './Toast'
 import api from '../api'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 /**
  * Generate pairwise matchups from submissions list.
@@ -143,7 +144,7 @@ export default function ClashArena({ problem, submissions, summary }) {
       {/* Problem Image */}
       {problem.image_url && (
         <div className="clash-image">
-          <img src={problem.image_url} alt={problem.title} loading="lazy" />
+          <img src={problem.image_url} alt={shortId(problem.id)} loading="lazy" />
         </div>
       )}
 
@@ -190,7 +191,7 @@ export default function ClashArena({ problem, submissions, summary }) {
           title={t('clashArena.allDoneTitle')}
           description={t('clashArena.allDoneDesc', { count: totalPairs })}
           primaryAction={{ label: t('clashArena.viewResults'), to: '/results/' + problem.id }}
-          secondaryAction={{ label: t('clashArena.voteMore'), to: '/vote' }}
+          secondaryAction={{ label: t('clashArena.voteMore'), to: '/rounds' }}
         />
       )}
 

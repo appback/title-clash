@@ -1,6 +1,7 @@
 // rewardDistributor.js - Automatic reward distribution when a round closes
 const db = require('../db')
 const configManager = require('./configManager')
+const pointsService = require('./pointsService')
 
 function getRewardPoints() {
   return [
@@ -79,6 +80,13 @@ async function distributeRewards(problemId) {
           `UPDATE submissions SET status = 'winner' WHERE id = $1`,
           [submission.submission_id]
         )
+      }
+
+      // Mirror to agent_points table
+      try {
+        await pointsService.awardRoundWin(submission.agent_id, problemId, reward.rank)
+      } catch (ptErr) {
+        console.error(`[RewardDistributor] Failed to award agent_points:`, ptErr.message)
       }
 
       console.log(

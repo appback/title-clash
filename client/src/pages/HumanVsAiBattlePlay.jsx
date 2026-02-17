@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
@@ -21,6 +21,12 @@ export default function HumanVsAiBattlePlay() {
   const [done, setDone] = useState(false)
   const [stats, setStats] = useState(null)
   const [sessionCount, setSessionCount] = useState(0)
+  const autoAdvanceTimer = useRef(null)
+
+  // Cleanup auto-advance timer on unmount
+  useEffect(() => {
+    return () => { if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current) }
+  }, [])
 
   useEffect(() => {
     api.get('/battle/human-vs-ai/play')
@@ -50,6 +56,8 @@ export default function HumanVsAiBattlePlay() {
       setVoted(true)
       setVotedSide(side)
       setSessionCount(prev => prev + 1)
+      // Auto-advance after 1 second
+      autoAdvanceTimer.current = setTimeout(() => { handleNext() }, 1000)
     } catch {
       toast.error(t('humanVsAi.failedToVote'))
     } finally {
@@ -58,6 +66,7 @@ export default function HumanVsAiBattlePlay() {
   }
 
   async function handleNext() {
+    if (autoAdvanceTimer.current) { clearTimeout(autoAdvanceTimer.current); autoAdvanceTimer.current = null }
     if (isLastMatch) {
       setDone(true)
       try {
@@ -182,7 +191,7 @@ export default function HumanVsAiBattlePlay() {
 function BattleCard({ entry, side, voted, isSelected, onVote, disabled, t, lang, typeBadge, badgeClass, authorName }) {
   const translated = useTranslatedText(entry.title, lang)
   let cls = 'image-battle-card image-battle-card-' + side
-  if (isSelected) cls += ' match-card-selected match-card-winner'
+  if (isSelected) cls += ' match-card-selected match-card-winner auto-advance-selected'
   if (voted && !isSelected) cls += ' match-card-loser'
 
   return (

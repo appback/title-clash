@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
@@ -23,6 +23,12 @@ export default function TitleBattlePlay() {
   const [loading, setLoading] = useState(true)
   const [sessionResults, setSessionResults] = useState([])
   const [totalEntries, setTotalEntries] = useState(0)
+  const autoAdvanceTimer = useRef(null)
+
+  // Cleanup auto-advance timer on unmount
+  useEffect(() => {
+    return () => { if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current) }
+  }, [])
 
   useEffect(() => {
     if (legacyId) {
@@ -83,6 +89,8 @@ export default function TitleBattlePlay() {
         entry_a: match.entry_a,
         entry_b: match.entry_b
       }])
+      // Auto-advance after 1 second
+      autoAdvanceTimer.current = setTimeout(() => { handleNext() }, 1000)
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to vote'
       toast.error(msg)
@@ -140,6 +148,7 @@ export default function TitleBattlePlay() {
   }
 
   function handleNext() {
+    if (autoAdvanceTimer.current) { clearTimeout(autoAdvanceTimer.current); autoAdvanceTimer.current = null }
     if (isLastMatch) {
       navigateToResults()
       return
@@ -253,7 +262,7 @@ export default function TitleBattlePlay() {
 function MatchCard({ entry, side, voted, isSelected, isWinner, totalVotes, onVote, disabled, t, lang }) {
   const translated = useTranslatedText(entry.title, lang)
   let cls = 'match-card match-card-' + side
-  if (isSelected) cls += ' match-card-selected'
+  if (isSelected) cls += ' match-card-selected auto-advance-selected'
   if (voted && isWinner) cls += ' match-card-winner'
   if (voted && !isWinner) cls += ' match-card-loser'
 

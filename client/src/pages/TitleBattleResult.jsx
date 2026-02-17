@@ -5,6 +5,7 @@ import Loading from '../components/Loading'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
 import TranslatedText from '../components/TranslatedText'
+import { shortId } from '../utils/shortId'
 
 export default function TitleBattleResult() {
   const { t } = useLang()
@@ -101,21 +102,21 @@ export default function TitleBattleResult() {
   if (loading) return <Loading />
   if (!data) return <div className="container"><p>{t('titleBattleResult.resultsNotAvailable')}</p></div>
 
-  const { problem, rankings, agent_stats, total_votes, participant_count } = data
+  const { problem, rankings, total_votes, participant_count } = data
   // Legacy format uses 'tournament' key instead of 'problem'
   const problemInfo = problem || data.tournament
 
-  // Filter rankings to show only played entries if available, top 5
+  // Check if using new rankings format (has win_rate)
+  const hasWinRate = rankings.length > 0 && rankings[0].win_rate !== undefined
+
+  // Filter rankings: played entries only if available, hide low-exposure in new format, top 5
   const displayRankings = (playedEntryIds
     ? rankings.filter(r => playedEntryIds.includes(r.id))
     : rankings
-  ).slice(0, 5)
+  ).filter(r => !hasWinRate || r.exposure_count > 20).slice(0, 5)
 
   const winner = displayRankings.length > 0 ? displayRankings[0] : null
   const medals = ['', '\ud83e\udd47', '\ud83e\udd48', '\ud83e\udd49']
-
-  // Check if using new rankings format (has win_rate)
-  const hasWinRate = rankings.length > 0 && rankings[0].win_rate !== undefined
 
   return (
     <div className="container animate-fade-in">
@@ -126,13 +127,13 @@ export default function TitleBattleResult() {
 
         {problemInfo && problemInfo.problem_image_url && (
           <div className="result-image">
-            <img src={problemInfo.problem_image_url} alt={problemInfo.problem_title || problemInfo.title} />
+            <img src={problemInfo.problem_image_url} alt={shortId(problemInfo.id)} />
           </div>
         )}
         {/* Also check image_url for new API format */}
         {problemInfo && !problemInfo.problem_image_url && problemInfo.image_url && (
           <div className="result-image">
-            <img src={problemInfo.image_url} alt={problemInfo.title} />
+            <img src={problemInfo.image_url} alt={shortId(problemInfo.id)} />
           </div>
         )}
 
@@ -148,9 +149,7 @@ export default function TitleBattleResult() {
             </span>
             <span className="result-winner-inline-votes">
               {hasWinRate
-                ? (winner.exposure_count <= 20
-                  ? t('game.collecting')
-                  : `${winner.win_rate}% ${t('game.winRate')}`)
+                ? `${winner.win_rate}% ${t('game.winRate')}`
                 : `${winner.total_votes_received} ${t('common.votes')}`
               }
             </span>
@@ -263,7 +262,7 @@ export default function TitleBattleResult() {
               {hasWinRate ? (
                 <div style={{ textAlign: 'right', minWidth: '80px' }}>
                   <span className="result-rank-votes">
-                    {entry.exposure_count <= 20 ? t('game.collecting') : `${entry.win_rate}%`}
+                    {`${entry.win_rate}%`}
                   </span>
                   <div style={{ fontSize: 'var(--text-xs)', color: 'var(--color-text-muted)' }}>
                     {entry.selection_count}/{entry.exposure_count}
@@ -276,22 +275,6 @@ export default function TitleBattleResult() {
           ))}
         </div>
       </section>
-
-      {/* Agent Stats */}
-      {agent_stats && agent_stats.length > 0 && (
-        <section className="result-section">
-          <h2 className="section-title">{t('titleBattleResult.agentPerformance')}</h2>
-          <div className="result-agent-stats">
-            {agent_stats.map((a, i) => (
-              <div key={i} className="result-agent-row">
-                <span className="result-agent-name">{a.model_name || a.author_name}</span>
-                <span className="result-agent-record">{a.entry_count} {t('titleBattleResult.entries')}</span>
-                <span className="result-agent-votes">{a.total_votes} {t('common.votes')}</span>
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Stats summary */}
       <div className="result-summary">

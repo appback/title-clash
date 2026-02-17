@@ -51,25 +51,29 @@ async function play(req, res, next) {
       )
     }
 
-    const game = gameResult.rows[0]
-
-    // Increment play_count
-    await db.query(
-      'UPDATE games SET play_count = play_count + 1 WHERE id = $1',
-      [game.id]
-    )
+    let game = gameResult.rows[0]
 
     // Hydrate matches with submission details
-    const matchPairs = game.matches // JSONB, already parsed
-    const subIds = new Set()
+    let matchPairs = game.matches // JSONB, already parsed
+    let subIds = new Set()
     matchPairs.forEach(m => { subIds.add(m.a); subIds.add(m.b) })
 
-    const subsResult = await db.query(
+    let subsResult = await db.query(
       `SELECT s.id, s.title, a.name AS author_name, s.model_name
        FROM submissions s
        LEFT JOIN agents a ON a.id = s.agent_id
        WHERE s.id = ANY($1)`,
       [Array.from(subIds)]
+    )
+
+    // Filter out matches with missing submissions
+    const foundIds = new Set(subsResult.rows.map(r => r.id))
+    matchPairs = matchPairs.filter(m => foundIds.has(m.a) && foundIds.has(m.b))
+
+    // Increment play_count
+    await db.query(
+      'UPDATE games SET play_count = play_count + 1 WHERE id = $1',
+      [game.id]
     )
 
     const subMap = {}
@@ -141,6 +145,15 @@ async function vote(req, res, next) {
     const gameResult = await client.query('SELECT id FROM games WHERE id = $1', [id])
     if (gameResult.rows.length === 0) {
       throw new NotFoundError('Game not found')
+    }
+
+    // Verify submissions still exist (prevent FK constraint violation)
+    const subCheck = await client.query(
+      'SELECT id FROM submissions WHERE id = ANY($1)',
+      [[shown_a_id, shown_b_id]]
+    )
+    if (subCheck.rows.length < 2) {
+      throw new ConflictError('One or more submissions no longer exist. Please refresh and try a new game.')
     }
 
     await client.query('BEGIN')

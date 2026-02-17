@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
@@ -21,6 +21,12 @@ export default function ImageBattlePlay() {
   const [done, setDone] = useState(false)
   const [sessionCount, setSessionCount] = useState(0)
   const [sessionWins, setSessionWins] = useState({}) // { id: { ...entry, wins: N } }
+  const autoAdvanceTimer = useRef(null)
+
+  // Cleanup auto-advance timer on unmount
+  useEffect(() => {
+    return () => { if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current) }
+  }, [])
 
   useEffect(() => {
     api.get('/battle/image/play')
@@ -52,6 +58,8 @@ export default function ImageBattlePlay() {
             : { ...winnerEntry, wins: 1 }
         }
       })
+      // Auto-advance after 1 second
+      autoAdvanceTimer.current = setTimeout(() => { handleNext() }, 1000)
     } catch {
       toast.error(t('imageBattle.failedToVote'))
     } finally {
@@ -60,6 +68,7 @@ export default function ImageBattlePlay() {
   }
 
   function handleNext() {
+    if (autoAdvanceTimer.current) { clearTimeout(autoAdvanceTimer.current); autoAdvanceTimer.current = null }
     if (isLastMatch) {
       setDone(true)
       return
@@ -169,7 +178,7 @@ export default function ImageBattlePlay() {
 function ImageCard({ entry, side, voted, isSelected, onVote, disabled, t, lang }) {
   const translated = useTranslatedText(entry.title, lang)
   let cls = 'image-battle-card image-battle-card-' + side
-  if (isSelected) cls += ' match-card-selected match-card-winner'
+  if (isSelected) cls += ' match-card-selected match-card-winner auto-advance-selected'
   if (voted && !isSelected) cls += ' match-card-loser'
 
   return (

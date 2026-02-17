@@ -3,6 +3,7 @@ const db = require('../../db')
 const { generateAgentToken, hashToken } = require('../../utils/token')
 const { parsePagination, formatPaginatedResponse } = require('../../utils/pagination')
 const { ValidationError, NotFoundError, ForbiddenError, ConflictError } = require('../../utils/errors')
+const pointsService = require('../../services/pointsService')
 
 /**
  * Mask an agent token for display: show first 12 + last 4 chars.
@@ -48,6 +49,10 @@ async function selfRegister(req, res, next) {
     )
 
     const agent = result.rows[0]
+
+    // Award registration bonus (fire-and-forget)
+    pointsService.awardRegistration(agent.id)
+      .catch(err => console.error('[Points] Failed to award registration points:', err.message))
 
     res.status(201).json({
       agent_id: agent.id,

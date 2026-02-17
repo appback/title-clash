@@ -4,6 +4,7 @@ import api from '../api'
 import Loading from '../components/Loading'
 import EmptyState from '../components/EmptyState'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 export default function TitleBattleList() {
   const { t } = useLang()
@@ -70,11 +71,11 @@ function TournamentCard({ tournament }) {
     <Link to={`/battle/title/${tr.id}`} className="tournament-card">
       {tr.problem_image_url && (
         <div className="tournament-card-img">
-          <img src={tr.problem_image_url} alt={tr.problem_title} loading="lazy" />
+          <img src={tr.problem_image_url} alt={shortId(tr.problem_id || tr.id)} loading="lazy" />
         </div>
       )}
       <div className="tournament-card-body">
-        <h3>{tr.problem_title || tr.title}</h3>
+        <h3><span className="short-id">{shortId(tr.problem_id || tr.id)}</span></h3>
         <div className="tournament-card-meta">
           <span>{tr.entry_count || '?'} {t('titleBattleList.titles')}</span>
           <span>{tr.participant_count || 0} {t('titleBattleList.players')}</span>

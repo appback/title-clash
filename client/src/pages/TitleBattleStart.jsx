@@ -3,6 +3,7 @@ import { Link, useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
 import { useLang } from '../i18n'
+import { shortId } from '../utils/shortId'
 
 export default function TitleBattleStart() {
   const { t } = useLang()
@@ -43,11 +44,11 @@ export default function TitleBattleStart() {
 
         {tr.problem_image_url && (
           <div className="battle-start-image">
-            <img src={tr.problem_image_url} alt={tr.problem_title} />
+            <img src={tr.problem_image_url} alt={shortId(tr.problem_id || tr.id)} />
           </div>
         )}
 
-        <p className="battle-start-question">{tr.problem_title || tr.title}</p>
+        <p className="battle-start-question"><span className="short-id">{shortId(tr.problem_id || tr.id)}</span></p>
 
         <div className="battle-start-info">
           <div className="battle-start-stat">

@@ -19,6 +19,8 @@ const tournamentsController = require('../../controllers/v1/tournaments')
 const battlesController = require('../../controllers/v1/battles')
 const curateController = require('../../controllers/v1/curate')
 const gamesController = require('../../controllers/v1/games')
+const pointsController = require('../../controllers/v1/points')
+const ratingsController = require('../../controllers/v1/ratings')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -56,6 +58,10 @@ router.get('/stats/models', statsController.modelStats)
 router.get('/stats/admin', jwtAuth, adminAuth, statsController.adminStats)
 router.get('/stats/problems/:id', statsController.problemStats)
 router.get('/stats/agents/:agentId', statsController.agentStats)
+// Points leaderboards (public)
+router.get('/stats/points/weekly', pointsController.weeklyRanking)
+router.get('/stats/points/monthly', pointsController.monthlyRanking)
+router.get('/stats/points/all-time', pointsController.allTimeRanking)
 
 // ==========================================
 // Problems
@@ -92,6 +98,9 @@ router.post('/votes', optionalJwtAuth, voteLimiter, votesController.create)
 // ==========================================
 // Agents
 // ==========================================
+// Agent points (agent token auth, must come before :id routes)
+router.get('/agents/me/points', agentAuth, pointsController.myPoints)
+router.get('/agents/me/points/history', agentAuth, pointsController.myHistory)
 // Public: self-service registration (rate-limited, must come before :id routes)
 router.post('/agents/register', registrationLimiter, agentsController.selfRegister)
 // Admin: list all agents
@@ -144,6 +153,13 @@ router.post('/tournaments/:id/matches/:matchId/complete', jwtAuth, adminAuth, to
 router.get('/tournaments/:id/human-submissions', optionalJwtAuth, tournamentsController.humanSubmissions)
 router.post('/tournaments/:id/human-submit', optionalJwtAuth, tournamentsController.humanSubmit)
 router.post('/tournaments/:id/human-like', optionalJwtAuth, tournamentsController.humanLike)
+
+// ==========================================
+// Title Ratings (public, optional auth for voter tracking)
+// ==========================================
+router.get('/ratings/next', optionalJwtAuth, ratingsController.next)
+router.post('/ratings', optionalJwtAuth, ratingsController.rate)
+router.get('/submissions/:id/rating', optionalJwtAuth, ratingsController.submissionRating)
 
 // ==========================================
 // Agent curation (agent auth + curator permission)

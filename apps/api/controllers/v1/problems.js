@@ -21,9 +21,7 @@ async function create(req, res, next) {
   try {
     const { title, image_url, description, start_at, end_at } = req.body
 
-    if (!title || String(title).trim() === '') {
-      throw new ValidationError('title is required')
-    }
+    // title is optional (problems are identified by short ID)
 
     // Validate external image URL if provided
     let imageWarning = null
@@ -40,7 +38,7 @@ async function create(req, res, next) {
        VALUES ($1, $2, $3, 'draft', $4, $5, $6)
        RETURNING id, title, image_url, description, state, created_by, start_at, end_at, created_at, updated_at`,
       [
-        title.trim(),
+        title ? title.trim() : null,
         image_url || null,
         description || null,
         req.user.userId,

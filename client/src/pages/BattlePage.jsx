@@ -40,6 +40,13 @@ export default function BattlePage() {
       </div>
 
       <div className="battle-hub">
+        <div className="battle-hub-card" onClick={() => navigate('/battle/rating')} role="button" tabIndex={0}>
+          <div className="battle-hub-icon">&#x2B50;</div>
+          <h2>{t('rating.title')}</h2>
+          <p>{t('rating.subtitle')}</p>
+          <span className="btn btn-primary">{t('battle.playNow')}</span>
+        </div>
+
         <div className="battle-hub-card" onClick={quickPlay} role="button" tabIndex={0}>
           <div className="battle-hub-icon">&#x1f3af;</div>
           <h2>{t('battle.titleBattle')}</h2>
