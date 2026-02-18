@@ -4,6 +4,7 @@ const db = require('../db')
 const { distributeRewards } = require('./rewardDistributor')
 const { triggerAutoSubmissions } = require('./autoSubmitter')
 const { registerNewSubmissions, replenishGamePool } = require('./matchmaker')
+const { expireStaleChallenges } = require('./challengeService')
 
 /**
  * Start the scheduler.
@@ -27,6 +28,7 @@ function startScheduler() {
     try {
       await registerNewSubmissions()
       await replenishGamePool()
+      await expireStaleChallenges()
     } catch (err) {
       console.error('[Scheduler] Error in matchmaker cycle:', err)
     }

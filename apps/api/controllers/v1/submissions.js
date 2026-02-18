@@ -61,9 +61,9 @@ async function create(req, res, next) {
     // Check problem accepts submissions (open or voting)
     if (problem.state !== 'open' && problem.state !== 'voting') {
       throw new AppError(
+        'Problem is not accepting submissions',
         422,
-        'PROBLEM_NOT_OPEN',
-        'Problem is not accepting submissions'
+        'PROBLEM_NOT_OPEN'
       )
     }
 

@@ -157,9 +157,9 @@ async function update(req, res, next) {
       const allowed = VALID_TRANSITIONS[problem.state] || []
       if (!allowed.includes(state)) {
         throw new AppError(
+          `Cannot transition from '${problem.state}' to '${state}'. Allowed: ${allowed.join(', ') || 'none'}`,
           400,
-          'INVALID_STATE_TRANSITION',
-          `Cannot transition from '${problem.state}' to '${state}'. Allowed: ${allowed.join(', ') || 'none'}`
+          'INVALID_STATE_TRANSITION'
         )
       }
     }

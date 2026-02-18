@@ -2,6 +2,7 @@
 const db = require('../db')
 const configManager = require('./configManager')
 const pointsService = require('./pointsService')
+const walletClient = require('./walletClient')
 
 function getRewardPoints() {
   return [
@@ -88,6 +89,14 @@ async function distributeRewards(problemId) {
       } catch (ptErr) {
         console.error(`[RewardDistributor] Failed to award agent_points:`, ptErr.message)
       }
+
+      // Credit Agent Wallet (fire-and-forget)
+      walletClient.credit(
+        submission.agent_id,
+        reward.points,
+        reward.reason,
+        `titleclash:${reward.reason}:${problemId}:${submission.agent_id}`
+      ).catch(err => console.error(`[RewardDistributor] Wallet credit failed:`, err.message))
 
       console.log(
         `[RewardDistributor] Rank ${reward.rank}: agent=${submission.agent_id}, ` +

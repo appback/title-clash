@@ -6,22 +6,20 @@ const db = require('../db')
 // ==========================================
 const TIERS = [
   { level: 1, min: 0,     name: 'Rookie',        name_ko: '신입생' },
-  { level: 2, min: 1000,  name: 'Comedian',       name_ko: '개그맨' },
-  { level: 3, min: 5000,  name: 'Entertainer',    name_ko: '예능인' },
-  { level: 4, min: 15000, name: 'Comedy Master',  name_ko: '웃음장인' },
-  { level: 5, min: 30000, name: 'Title King',     name_ko: '제목학원장' },
+  { level: 2, min: 2500,  name: 'Comedian',       name_ko: '개그맨' },
+  { level: 3, min: 10000, name: 'Entertainer',    name_ko: '예능인' },
+  { level: 4, min: 25000, name: 'Comedy Master',  name_ko: '웃음장인' },
+  { level: 5, min: 50000, name: 'Title King',     name_ko: '제목학원장' },
 ]
 
 // Milestone definitions: { at: submission count, bonus: points, reason }
 const MILESTONES = [
-  { at: 3,  bonus: 100, reason: 'daily' },
-  { at: 9,  bonus: 50,  reason: 'milestone_9' },
-  { at: 15, bonus: 50,  reason: 'milestone_15' },
-  { at: 30, bonus: 100, reason: 'milestone_30' },
+  { at: 3,  bonus: 50, reason: 'daily' },
+  { at: 8,  bonus: 100,  reason: 'milestone_8' },
 ]
 
-// Max per-submission points after daily threshold
-const MAX_SUBMISSION_POINTS = 30
+// Base points awarded per submission (multiplied by contribution level)
+const BASE_SUBMISSION_POINTS = 10
 
 // ==========================================
 // Pure functions
@@ -79,7 +77,7 @@ async function awardRegistration(agentId) {
   return result.rows[0]
 }
 
-async function awardSubmission(agentId, problemId, submissionId) {
+async function awardSubmission(agentId, problemId, submissionId, multiplier = 1.0) {
   const today = _getKSTDate()
 
   // Upsert daily summary
@@ -97,32 +95,30 @@ async function awardSubmission(agentId, problemId, submissionId) {
   const milestonesHit = summary.milestones_hit || []
   let pointsAwarded = 0
 
-  // Check milestones
+  // Base points for every submission (scaled by contribution level)
+  const basePoints = Math.round(BASE_SUBMISSION_POINTS * multiplier)
+  await db.query(
+    `INSERT INTO agent_points (agent_id, points, reason, reference_date, metadata)
+     VALUES ($1, $2, 'submission', $3, $4)`,
+    [agentId, basePoints, today,
+     JSON.stringify({ problem_id: problemId, submission_id: submissionId })]
+  )
+  pointsAwarded += basePoints
+  console.log(`[Points] Submission: agent=${agentId}, +${basePoints}p (x${multiplier})`)
+
+  // Milestone bonuses (extra reward for consistent daily play)
   for (const m of MILESTONES) {
     if (todayCount >= m.at && !milestonesHit.includes(m.reason)) {
+      const bonus = Math.round(m.bonus * multiplier)
       await db.query(
         `INSERT INTO agent_points (agent_id, points, reason, reference_date, metadata)
          VALUES ($1, $2, $3, $4, $5)`,
-        [agentId, m.bonus, m.reason, today,
+        [agentId, bonus, m.reason, today,
          JSON.stringify({ problem_id: problemId, submission_id: submissionId })]
       )
       milestonesHit.push(m.reason)
-      pointsAwarded += m.bonus
-      console.log(`[Points] Milestone ${m.reason}: agent=${agentId}, +${m.bonus}p (day count=${todayCount})`)
-    }
-  }
-
-  // Per-submission point (after daily threshold, up to MAX_SUBMISSION_POINTS)
-  if (todayCount > 3) {
-    const submissionPointsSoFar = todayCount - 3 - 1 // minus the current one
-    if (submissionPointsSoFar < MAX_SUBMISSION_POINTS) {
-      await db.query(
-        `INSERT INTO agent_points (agent_id, points, reason, reference_date, metadata)
-         VALUES ($1, 1, 'submission', $2, $3)`,
-        [agentId, today,
-         JSON.stringify({ problem_id: problemId, submission_id: submissionId })]
-      )
-      pointsAwarded += 1
+      pointsAwarded += bonus
+      console.log(`[Points] Milestone ${m.reason}: agent=${agentId}, +${bonus}p (x${multiplier})`)
     }
   }
 

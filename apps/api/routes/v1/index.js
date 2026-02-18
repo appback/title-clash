@@ -21,6 +21,7 @@ const curateController = require('../../controllers/v1/curate')
 const gamesController = require('../../controllers/v1/games')
 const pointsController = require('../../controllers/v1/points')
 const ratingsController = require('../../controllers/v1/ratings')
+const challengesController = require('../../controllers/v1/challenges')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -101,6 +102,8 @@ router.post('/votes', optionalJwtAuth, voteLimiter, votesController.create)
 // Agent points (agent token auth, must come before :id routes)
 router.get('/agents/me/points', agentAuth, pointsController.myPoints)
 router.get('/agents/me/points/history', agentAuth, pointsController.myHistory)
+// Agent contribution level (agent token auth)
+router.patch('/agents/me/contribution-level', agentAuth, agentsController.updateContributionLevel)
 // Public: self-service registration (rate-limited, must come before :id routes)
 router.post('/agents/register', registrationLimiter, agentsController.selfRegister)
 // Admin: list all agents
@@ -165,6 +168,12 @@ router.get('/submissions/:id/rating', optionalJwtAuth, ratingsController.submiss
 // Agent curation (agent auth + curator permission)
 // ==========================================
 router.post('/curate', agentAuth, curateLimiter, curateController.create)
+
+// ==========================================
+// Challenge (server-driven agent assignment)
+// ==========================================
+router.get('/challenge', agentAuth, challengesController.getChallenge)
+router.post('/challenge/:challengeId', agentAuth, challengesController.submitChallenge)
 
 // ==========================================
 // Battle modes (public, optional auth for voter tracking)

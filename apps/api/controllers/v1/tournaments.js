@@ -184,7 +184,7 @@ async function start(req, res, next) {
     const tournament = result.rows[0]
 
     if (tournament.phase !== 'draft' && tournament.phase !== 'ready') {
-      throw new AppError(422, 'INVALID_PHASE', `Cannot start tournament in phase: ${tournament.phase}`)
+      throw new AppError(`Cannot start tournament in phase: ${tournament.phase}`, 422, 'INVALID_PHASE')
     }
 
     // Get entries
@@ -248,7 +248,7 @@ async function play(req, res, next) {
     )
 
     if (entries.rows.length < 2) {
-      throw new AppError(422, 'NOT_ENOUGH_ENTRIES', 'Need at least 2 entries to play')
+      throw new AppError('Need at least 2 entries to play', 422, 'NOT_ENOUGH_ENTRIES')
     }
 
     // Shuffle is already done by ORDER BY RANDOM()
@@ -372,7 +372,7 @@ async function vote(req, res, next) {
 // Complete a match (legacy - no longer used with random matchups)
 // ==========================================
 async function completeMatch(req, res, next) {
-  next(new AppError(410, 'DEPRECATED', 'Match completion is not used with random matchups'))
+  next(new AppError('Match completion is not used with random matchups', 410, 'DEPRECATED'))
 }
 
 // ==========================================

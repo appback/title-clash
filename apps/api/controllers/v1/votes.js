@@ -37,9 +37,9 @@ async function create(req, res, next) {
     // Check problem is in voting state (open state is for submissions only)
     if (submission.state !== 'voting') {
       throw new AppError(
+        'Voting is not open for this problem',
         422,
-        'VOTING_CLOSED',
-        'Voting is not open for this problem'
+        'VOTING_CLOSED'
       )
     }
 

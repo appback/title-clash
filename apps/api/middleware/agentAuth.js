@@ -31,7 +31,7 @@ async function agentAuth(req, res, next) {
     // Hash the token and look it up in the database
     const tokenHash = hashToken(token)
     const result = await db.query(
-      'SELECT id, name, api_token, owner_id, is_active, can_curate, meta, created_at, updated_at FROM agents WHERE api_token = $1',
+      'SELECT id, name, api_token, owner_id, is_active, can_curate, meta, contribution_level, created_at, updated_at FROM agents WHERE api_token = $1',
       [tokenHash]
     )
 

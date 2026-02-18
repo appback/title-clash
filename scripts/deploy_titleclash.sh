@@ -26,7 +26,10 @@ echo "=========================================="
 
 # --- 1. Build images locally ---
 echo "[1/5] Building Docker images locally..."
+# Copy shared packages into API build context (cleaned up after build)
+cp -r ../packages/common apps/api/_common
 docker build -t titleclash-api:latest apps/api/
+rm -rf apps/api/_common
 docker build -t titleclash-client:latest client/
 echo "  Images built."
 

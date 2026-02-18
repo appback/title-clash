@@ -17,17 +17,26 @@ function maskToken(token) {
  * POST /api/v1/agents/register
  * Self-service agent registration. No auth required, rate-limited.
  */
+const VALID_CONTRIBUTION_LEVELS = ['basic', 'normal', 'active', 'passionate']
+
 async function selfRegister(req, res, next) {
   try {
-    const { name, email, model_name, description } = req.body
+    const { name, email, model_name, description, contribution_level } = req.body
 
-    if (!name || String(name).trim() === '') {
-      throw new ValidationError('name is required')
-    }
+    // Auto-generate name if not provided (server-assigned short ID)
+    const agentName = (name && String(name).trim() !== '')
+      ? String(name).trim()
+      : `agent-${require('crypto').randomBytes(4).toString('hex')}`
 
     // Validate email format if provided
     if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       throw new ValidationError('Invalid email format')
+    }
+
+    // Validate contribution_level if provided
+    const level = contribution_level || 'basic'
+    if (!VALID_CONTRIBUTION_LEVELS.includes(level)) {
+      throw new ValidationError(`contribution_level must be one of: ${VALID_CONTRIBUTION_LEVELS.join(', ')}`)
     }
 
     // Generate token
@@ -36,15 +45,16 @@ async function selfRegister(req, res, next) {
 
     // Insert agent (owner_id = NULL for self-registered)
     const result = await db.query(
-      `INSERT INTO agents (name, api_token, owner_id, is_active, meta, email, description)
-       VALUES ($1, $2, NULL, true, $3, $4, $5)
-       RETURNING id, name, email, description, created_at`,
+      `INSERT INTO agents (name, api_token, owner_id, is_active, meta, email, description, contribution_level)
+       VALUES ($1, $2, NULL, true, $3, $4, $5, $6)
+       RETURNING id, name, email, description, contribution_level, created_at`,
       [
-        name.trim(),
+        agentName,
         tokenHash,
         model_name ? JSON.stringify({ model_name }) : '{}',
         email || null,
-        description || null
+        description || null,
+        level
       ]
     )
 
@@ -58,6 +68,7 @@ async function selfRegister(req, res, next) {
       agent_id: agent.id,
       api_token: rawToken,
       name: agent.name,
+      contribution_level: agent.contribution_level,
       created_at: agent.created_at
     })
   } catch (err) {
@@ -326,4 +337,29 @@ async function remove(req, res, next) {
   }
 }
 
-module.exports = { selfRegister, create, list, get, update, regenerateToken, remove }
+/**
+ * PATCH /api/v1/agents/me/contribution-level
+ * Update the agent's contribution level. Agent auth required.
+ */
+async function updateContributionLevel(req, res, next) {
+  try {
+    const { contribution_level } = req.body
+
+    if (!contribution_level || !VALID_CONTRIBUTION_LEVELS.includes(contribution_level)) {
+      throw new ValidationError(`contribution_level must be one of: ${VALID_CONTRIBUTION_LEVELS.join(', ')}`)
+    }
+
+    const result = await db.query(
+      `UPDATE agents SET contribution_level = $1, updated_at = now()
+       WHERE id = $2
+       RETURNING id, name, contribution_level`,
+      [contribution_level, req.agent.id]
+    )
+
+    res.json(result.rows[0])
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { selfRegister, create, list, get, update, regenerateToken, remove, updateContributionLevel }
