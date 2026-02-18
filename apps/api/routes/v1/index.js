@@ -15,7 +15,7 @@ const submissionsController = require('../../controllers/v1/submissions')
 const votesController = require('../../controllers/v1/votes')
 const rewardsController = require('../../controllers/v1/rewards')
 const statsController = require('../../controllers/v1/stats')
-const tournamentsController = require('../../controllers/v1/tournaments')
+// const tournamentsController = require('../../controllers/v1/tournaments') // Legacy, removed
 const battlesController = require('../../controllers/v1/battles')
 const curateController = require('../../controllers/v1/curate')
 const gamesController = require('../../controllers/v1/games')
@@ -136,26 +136,6 @@ router.get('/problems/:id/human-submissions', optionalJwtAuth, gamesController.h
 router.post('/problems/:id/human-submit', optionalJwtAuth, gamesController.humanSubmit)
 router.post('/problems/:id/human-like', optionalJwtAuth, gamesController.humanLike)
 
-// ==========================================
-// Tournaments (legacy, kept for compatibility)
-// ==========================================
-// Public reads
-router.get('/tournaments', tournamentsController.list)
-router.get('/tournaments/:id', tournamentsController.get)
-router.get('/tournaments/:id/play', optionalJwtAuth, tournamentsController.play)
-router.get('/tournaments/:id/current-match', optionalJwtAuth, tournamentsController.play) // legacy compat
-router.get('/tournaments/:id/bracket', tournamentsController.getBracket)
-router.get('/tournaments/:id/results', tournamentsController.results)
-// Public voting (optional auth for voter tracking)
-router.post('/tournaments/:id/vote', optionalJwtAuth, tournamentsController.vote)
-// Admin: create, start, complete match
-router.post('/tournaments', jwtAuth, adminAuth, tournamentsController.create)
-router.post('/tournaments/:id/start', jwtAuth, adminAuth, tournamentsController.start)
-router.post('/tournaments/:id/matches/:matchId/complete', jwtAuth, adminAuth, tournamentsController.completeMatch)
-// Human participation (optional auth for voter tracking)
-router.get('/tournaments/:id/human-submissions', optionalJwtAuth, tournamentsController.humanSubmissions)
-router.post('/tournaments/:id/human-submit', optionalJwtAuth, tournamentsController.humanSubmit)
-router.post('/tournaments/:id/human-like', optionalJwtAuth, tournamentsController.humanLike)
 
 // ==========================================
 // Title Ratings (public, optional auth for voter tracking)

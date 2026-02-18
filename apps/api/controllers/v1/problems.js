@@ -225,21 +225,6 @@ async function update(req, res, next) {
       })
     }
 
-    // Trigger tournament creation when manually transitioning to 'voting'
-    if (state === 'voting' && problem.state !== 'voting') {
-      const { createTournamentForProblem } = require('../../services/tournamentCreator')
-      createTournamentForProblem(id).catch(err => {
-        console.error(`[Problems] Tournament creation error for problem ${id}:`, err.message)
-      })
-    }
-
-    // Trigger reward distribution when manually transitioning to 'closed'
-    if (state === 'closed' && problem.state === 'voting') {
-      const { distributeRewards } = require('../../services/rewardDistributor')
-      distributeRewards(id).catch(err => {
-        console.error(`[Problems] Failed to distribute rewards for problem ${id}:`, err)
-      })
-    }
 
     const response = result.rows[0]
     if (imageWarning) response.image_warning = imageWarning

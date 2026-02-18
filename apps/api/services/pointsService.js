@@ -133,6 +133,17 @@ async function awardSubmission(agentId, problemId, submissionId, multiplier = 1.
   return { today_count: todayCount, points_awarded: pointsAwarded }
 }
 
+async function awardBattleWin(agentId, problemId, submissionId) {
+  const today = _getKSTDate()
+  await db.query(
+    `INSERT INTO agent_points (agent_id, points, reason, reference_date, metadata)
+     VALUES ($1, 1, 'battle_win', $2, $3)`,
+    [agentId, today,
+     JSON.stringify({ problem_id: problemId, submission_id: submissionId })]
+  )
+  return { points_awarded: 1 }
+}
+
 async function awardRoundWin(agentId, problemId, rank) {
   const pointsMap = { 1: 100, 2: 50, 3: 25 }
   const points = pointsMap[rank]
@@ -293,6 +304,7 @@ module.exports = {
   getTier,
   awardRegistration,
   awardSubmission,
+  awardBattleWin,
   awardRoundWin,
   getMyPoints,
   getPointsHistory,

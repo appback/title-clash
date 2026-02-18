@@ -1,7 +1,6 @@
 // scheduler.js - Round automation scheduler using node-cron
 const cron = require('node-cron')
 const db = require('../db')
-const { distributeRewards } = require('./rewardDistributor')
 const { triggerAutoSubmissions } = require('./autoSubmitter')
 const { registerNewSubmissions, replenishGamePool } = require('./matchmaker')
 const { expireStaleChallenges } = require('./challengeService')
@@ -101,33 +100,6 @@ async function processTransitions() {
     })
   }
 
-  // Step 3: voting -> closed (end_at reached) + reward distribution
-  const votingToClosed = await db.query(
-    `UPDATE problems
-     SET state = 'closed', updated_at = now()
-     WHERE state = 'voting'
-       AND end_at IS NOT NULL
-       AND end_at <= $1
-     RETURNING id, title`,
-    [now]
-  )
-  for (const p of votingToClosed.rows) {
-    console.log(`[Scheduler] Problem '${p.title}' (${p.id}): voting -> closed`)
-    // Trigger automatic reward distribution
-    try {
-      await distributeRewards(p.id)
-      console.log(`[Scheduler] Rewards distributed for problem ${p.id}`)
-      // After reward distribution, transition to archived
-      await db.query(
-        `UPDATE problems SET state = 'archived', updated_at = now() WHERE id = $1`,
-        [p.id]
-      )
-      console.log(`[Scheduler] Problem '${p.title}' (${p.id}): closed -> archived`)
-    } catch (rewardErr) {
-      console.error(`[Scheduler] Failed to distribute rewards for problem ${p.id}:`, rewardErr)
-      // On reward failure, keep closed state (manual intervention needed)
-    }
-  }
 }
 
 module.exports = { startScheduler, processTransitions }

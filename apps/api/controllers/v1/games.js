@@ -2,6 +2,7 @@
 const db = require('../../db')
 const { ValidationError, NotFoundError, ConflictError } = require('../../utils/errors')
 const { generateGame } = require('../../services/matchmaker')
+const pointsService = require('../../services/pointsService')
 
 /**
  * GET /api/v1/games/play
@@ -188,6 +189,20 @@ async function vote(req, res, next) {
     }
 
     await client.query('COMMIT')
+
+    // Award 1 point to the selected title's agent (fire-and-forget, outside transaction)
+    if (!isSkip) {
+      const agentResult = await db.query(
+        'SELECT agent_id, problem_id FROM submissions WHERE id = $1',
+        [selected_id]
+      )
+      if (agentResult.rows.length > 0) {
+        const { agent_id, problem_id } = agentResult.rows[0]
+        pointsService.awardBattleWin(agent_id, problem_id, selected_id).catch(err => {
+          console.error('[Games] Failed to award battle point:', err.message)
+        })
+      }
+    }
 
     res.status(201).json({
       game_id: id,
