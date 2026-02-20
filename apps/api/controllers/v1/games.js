@@ -11,13 +11,13 @@ const pointsService = require('../../services/pointsService')
  */
 async function play(req, res, next) {
   try {
-    // Find a game from an active problem (open or voting)
+    // Find a game from a voting problem only
     let gameResult = await db.query(
       `SELECT g.id, g.problem_id, g.matches, g.play_count,
               p.title AS problem_title, p.image_url AS problem_image_url
        FROM games g
        JOIN problems p ON p.id = g.problem_id
-       WHERE p.state IN ('open', 'voting')
+       WHERE p.state = 'voting'
        ORDER BY g.play_count ASC, RANDOM()
        LIMIT 1`
     )
@@ -26,7 +26,7 @@ async function play(req, res, next) {
     if (gameResult.rows.length === 0) {
       const eligibleProblem = await db.query(
         `SELECT p.id FROM problems p
-         WHERE p.state IN ('open', 'voting')
+         WHERE p.state = 'voting'
            AND (SELECT COUNT(*) FROM submissions s
                 WHERE s.problem_id = p.id AND s.status = 'active' AND s.registered_at IS NOT NULL) >= 2
          ORDER BY RANDOM()

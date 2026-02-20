@@ -28,7 +28,8 @@ scripts/meme_images/
 scripts/meme_images_full/
 scripts/naver_blog.html
 scripts/sample_*.png
-Ctmpgenerate_fill_sql.js
+C?tmpgenerate_fill_sql.js
+NUL
 
 # Windows artifacts
 *.Zone.Identifier

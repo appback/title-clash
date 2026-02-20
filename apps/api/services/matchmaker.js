@@ -178,7 +178,7 @@ async function replenishGamePool() {
             )::int AS sub_count,
             (SELECT COUNT(*) FROM games g WHERE g.problem_id = p.id)::int AS game_count
      FROM problems p
-     WHERE p.state IN ('open', 'voting')`
+     WHERE p.state = 'voting'`
   )
 
   let generated = 0

@@ -459,7 +459,14 @@
     "ratingCount": "{count} ratings",
     "next": "Next",
     "allDone": "All titles have been rated!",
-    "thankYou": "Thanks for rating!"
+    "thankYou": "Thanks for rating!",
+    "progress": "{current} / {total}",
+    "sessionDone": "You've rated {count} titles!",
+    "star1": "Irrelevant or too generic",
+    "star2": "Related but not funny",
+    "star3": "Decent title",
+    "star4": "Funny",
+    "star5": "Unexpectedly delightful"
   },
   "points": {
     "title": "Points Ranking",

@@ -3,28 +3,40 @@ import { Link } from 'react-router-dom'
 import api from '../api'
 import Loading from '../components/Loading'
 import TranslatedText from '../components/TranslatedText'
+import GameProgress from '../components/GameProgress'
 import { useLang } from '../i18n'
 import { shortId } from '../utils/shortId'
 
-function StarSelector({ value, onChange, disabled }) {
+const MAX_RATINGS = 10
+
+const STAR_GUIDE_KEYS = ['star1', 'star2', 'star3', 'star4', 'star5']
+
+function StarSelector({ value, onChange, disabled, t }) {
   const [hover, setHover] = useState(0)
 
   return (
-    <div className="star-selector" onMouseLeave={() => setHover(0)}>
-      {[1, 2, 3, 4, 5].map(star => (
-        <span
-          key={star}
-          className={'star-btn' + (star <= (hover || value) ? ' star-filled' : '')}
-          onClick={() => !disabled && onChange(star)}
-          onMouseEnter={() => !disabled && setHover(star)}
-          role="button"
-          tabIndex={0}
-          onKeyDown={e => e.key === 'Enter' && !disabled && onChange(star)}
-          aria-label={star + ' stars'}
-        >
-          {star <= (hover || value) ? '\u2605' : '\u2606'}
-        </span>
-      ))}
+    <div className="star-selector-wrap">
+      <div className="star-selector" onMouseLeave={() => setHover(0)}>
+        {[1, 2, 3, 4, 5].map(star => (
+          <span
+            key={star}
+            className={'star-btn' + (star <= (hover || value) ? ' star-filled' : '')}
+            onClick={() => !disabled && onChange(star)}
+            onMouseEnter={() => !disabled && setHover(star)}
+            role="button"
+            tabIndex={0}
+            onKeyDown={e => e.key === 'Enter' && !disabled && onChange(star)}
+            aria-label={star + ' stars'}
+          >
+            {star <= (hover || value) ? '\u2605' : '\u2606'}
+          </span>
+        ))}
+      </div>
+      {(hover || value) > 0 && (
+        <div className="star-guide-text animate-fade-in">
+          {t('rating.' + STAR_GUIDE_KEYS[(hover || value) - 1])}
+        </div>
+      )}
     </div>
   )
 }
@@ -38,6 +50,8 @@ export default function TitleRatingPage() {
   const [submitting, setSubmitting] = useState(false)
   const [allDone, setAllDone] = useState(false)
   const [result, setResult] = useState(null)
+  const [ratedCount, setRatedCount] = useState(0)
+  const [sessionDone, setSessionDone] = useState(false)
 
   const fetchNext = useCallback(async () => {
     setLoading(true)
@@ -65,30 +79,59 @@ export default function TitleRatingPage() {
     fetchNext()
   }, [fetchNext])
 
-  async function handleRate() {
-    if (!item || stars === 0 || submitting) return
+  async function handleRate(starValue) {
+    const rating = starValue || stars
+    if (!item || rating === 0 || submitting) return
+    setStars(rating)
     setSubmitting(true)
     try {
       const res = await api.post('/ratings', {
         submission_id: item.submission_id,
-        stars
+        stars: rating
       })
       setResult(res.data)
-      // Show result briefly, then load next
-      setTimeout(() => {
-        fetchNext()
-      }, 1500)
+      const newCount = ratedCount + 1
+      setRatedCount(newCount)
+
+      if (newCount >= MAX_RATINGS) {
+        setTimeout(() => setSessionDone(true), 1500)
+      } else {
+        setTimeout(() => fetchNext(), 1500)
+      }
     } catch {
-      // On error, still allow retry
+      // On error, allow retry
     } finally {
       setSubmitting(false)
     }
+  }
+
+  function handleStarSelect(star) {
+    if (submitting || result) return
+    setStars(star)
+    handleRate(star)
   }
 
   if (loading) {
     return (
       <div className="container animate-fade-in">
         <Loading message={t('common.loading')} />
+      </div>
+    )
+  }
+
+  if (sessionDone) {
+    return (
+      <div className="container animate-fade-in">
+        <div className="battle-complete">
+          <h2>{t('rating.sessionDone').replace('{count}', ratedCount)}</h2>
+          <p>{t('rating.thankYou')}</p>
+          <div style={{ display: 'flex', gap: 'var(--spacing-md)', justifyContent: 'center', flexWrap: 'wrap' }}>
+            <Link to="/battle" className="btn btn-secondary">&larr; {t('battle.back')}</Link>
+            <button className="btn btn-primary" onClick={() => { setSessionDone(false); setRatedCount(0); fetchNext() }}>
+              {t('rating.title')} +{MAX_RATINGS}
+            </button>
+          </div>
+        </div>
       </div>
     )
   }
@@ -109,7 +152,9 @@ export default function TitleRatingPage() {
     <div className="container animate-fade-in">
       <div className="battle-play-header">
         <Link to="/battle" className="btn btn-ghost btn-sm">&larr; {t('battle.back')}</Link>
-        <span className="battle-round-badge">{t('rating.title')}</span>
+        <span className="battle-round-badge">
+          {t('rating.progress').replace('{current}', ratedCount + 1).replace('{total}', MAX_RATINGS)}
+        </span>
       </div>
 
       {item && (
@@ -129,8 +174,7 @@ export default function TitleRatingPage() {
             <TranslatedText text={item.title} className="translated-text" />
 
             <div className="rating-stars-section">
-              <label className="rating-stars-label">{t('rating.stars')}</label>
-              <StarSelector value={stars} onChange={setStars} disabled={submitting || !!result} />
+              <StarSelector value={stars} onChange={handleStarSelect} disabled={submitting || !!result} t={t} />
             </div>
 
             {result && (
@@ -147,21 +191,14 @@ export default function TitleRatingPage() {
                 </div>
               </div>
             )}
-
-            {!result && (
-              <div className="rating-actions">
-                <button
-                  className={'btn btn-primary' + (submitting ? ' btn-loading' : '')}
-                  onClick={handleRate}
-                  disabled={stars === 0 || submitting}
-                >
-                  {submitting ? t('common.loading') : t('rating.next')}
-                </button>
-              </div>
-            )}
           </div>
         </div>
       )}
+
+      {/* Progress bar */}
+      <div className="battle-play-progress">
+        <GameProgress current={ratedCount} total={MAX_RATINGS} />
+      </div>
     </div>
   )
 }

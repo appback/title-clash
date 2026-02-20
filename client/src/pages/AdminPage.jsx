@@ -13,11 +13,12 @@ function ActionGroup({ actions }) {
   const filtered = actions.filter(Boolean)
   if (filtered.length === 0) return null
   return (
-    <div className="btn-group">
+    <div className="btn-group" style={{ flexWrap: 'nowrap' }}>
       {filtered.map((action, i) => (
         <button
           key={action.key || i}
           className={`btn btn-${action.variant || 'secondary'} btn-sm`}
+          style={{ whiteSpace: 'nowrap' }}
           onClick={action.onClick}
         >
           {action.label}
@@ -215,8 +216,7 @@ function ProblemsAdmin() {
               <th>{t('admin.image')}</th>
               <th>ID</th>
               <th>{t('admin.state')}</th>
-              <th>{t('admin.start')}</th>
-              <th>{t('admin.end')}</th>
+              <th>{t('admin.submissionCount')}</th>
               <th>{t('admin.actions')}</th>
             </tr>
           </thead>
@@ -232,8 +232,7 @@ function ProblemsAdmin() {
                 </td>
                 <td><span className="short-id">{shortId(p.id)}</span></td>
                 <td><span className={'badge badge-' + p.state}>{p.state}</span></td>
-                <td>{p.start_at ? new Date(p.start_at).toLocaleString() : '-'}</td>
-                <td>{p.end_at ? new Date(p.end_at).toLocaleString() : '-'}</td>
+                <td>{p.submission_count ?? 0}</td>
                 <td>
                   <ActionGroup actions={[
                     { label: t('admin.edit'), variant: 'primary', onClick: () => openEdit(p) },
@@ -446,7 +445,7 @@ function SubmissionsAdmin() {
                   <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleString()}</td>
                   <td>
                     <ActionGroup actions={[
-                      s.status !== 'active' && { label: t('admin.activate'), variant: 'success', onClick: () => handleStatusChange(s.id, 'active') },
+                      s.status !== 'active' && { label: t('admin.activate'), variant: 'primary', onClick: () => handleStatusChange(s.id, 'active') },
                       s.status !== 'restricted' && { label: t('admin.restrict'), variant: 'secondary', onClick: () => handleStatusChange(s.id, 'restricted') },
                       s.status !== 'disqualified' && { label: t('admin.disqualify'), variant: 'danger', onClick: () => handleStatusChange(s.id, 'disqualified') }
                     ]} />
