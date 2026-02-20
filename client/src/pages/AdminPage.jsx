@@ -442,13 +442,13 @@ function SubmissionsAdmin() {
                   <td>
                     <div className="btn-group">
                       {s.status !== 'active' && (
-                        <button className="btn btn-sm btn-success" onClick={() => handleStatusChange(s.id, 'active')}>{t('admin.activate')}</button>
+                        <button className="btn btn-success btn-sm" onClick={() => handleStatusChange(s.id, 'active')}>{t('admin.activate')}</button>
                       )}
                       {s.status !== 'restricted' && (
-                        <button className="btn btn-sm btn-secondary" onClick={() => handleStatusChange(s.id, 'restricted')}>{t('admin.restrict')}</button>
+                        <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(s.id, 'restricted')}>{t('admin.restrict')}</button>
                       )}
                       {s.status !== 'disqualified' && (
-                        <button className="btn btn-sm btn-danger" onClick={() => handleStatusChange(s.id, 'disqualified')}>{t('admin.disqualify')}</button>
+                        <button className="btn btn-danger btn-sm" onClick={() => handleStatusChange(s.id, 'disqualified')}>{t('admin.disqualify')}</button>
                       )}
                     </div>
                   </td>
@@ -487,8 +487,8 @@ function SubmissionsAdmin() {
                 {r.detail && <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--spacing-xs)' }}>{r.detail}</p>}
                 {r.status === 'pending' && (
                   <div className="btn-group" style={{ marginTop: 'var(--spacing-sm)' }}>
-                    <button className="btn btn-sm btn-secondary" onClick={() => handleReviewReport(r.id, 'dismissed')}>{t('admin.dismiss')}</button>
-                    <button className="btn btn-sm btn-danger" onClick={() => handleReviewReport(r.id, 'confirmed')}>{t('admin.confirm')}</button>
+                    <button className="btn btn-secondary btn-sm" onClick={() => handleReviewReport(r.id, 'dismissed')}>{t('admin.dismiss')}</button>
+                    <button className="btn btn-danger btn-sm" onClick={() => handleReviewReport(r.id, 'confirmed')}>{t('admin.confirm')}</button>
                   </div>
                 )}
               </div>
@@ -558,7 +558,9 @@ function AgentsAdmin() {
 
   return (
     <div>
-      <h2 className="section-title">{t('admin.registeredAgents')} ({total})</h2>
+      <div className="section-header">
+        <h2>{t('admin.registeredAgents')} ({total})</h2>
+      </div>
       <div className="table-wrapper">
         <table className="table">
           <thead>
@@ -685,7 +687,9 @@ function StatisticsAdmin() {
 
   return (
     <div>
-      <h2 className="section-title">{t('admin.platformOverview')}</h2>
+      <div className="section-header">
+        <h2>{t('admin.platformOverview')}</h2>
+      </div>
       <div className="stats-grid">
         <div className="stat-card"><div className="stat-value">{ov.total_problems}</div><div className="stat-label">{t('admin.problemsLabel')}</div></div>
         <div className="stat-card"><div className="stat-value">{ov.active_problems}</div><div className="stat-label">{t('admin.activeLabel')}</div></div>
