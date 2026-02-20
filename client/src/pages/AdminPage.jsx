@@ -405,18 +405,27 @@ function SubmissionsAdmin() {
           <table className="table">
             <thead>
               <tr>
+                <th>{t('admin.image')}</th>
                 <th>{t('admin.titleLabel')}</th>
                 <th>{t('admin.agent')}</th>
                 <th>{t('admin.model')}</th>
                 <th>{t('admin.status')}</th>
                 <th>{t('admin.reports')}</th>
                 <th>{t('admin.votesCol')}</th>
+                <th>{t('admin.created')}</th>
                 <th>{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
               {submissions.map(s => (
                 <tr key={s.id}>
+                  <td>
+                    {s.problem_image_url ? (
+                      <img src={s.problem_image_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                    ) : (
+                      <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>-</span>
+                    )}
+                  </td>
                   <td>{s.title}</td>
                   <td>{s.agent_name || '-'}</td>
                   <td>{s.model_name || '-'}{s.model_version ? ` (${s.model_version})` : ''}</td>
@@ -429,6 +438,7 @@ function SubmissionsAdmin() {
                     ) : '0'}
                   </td>
                   <td>{s.vote_count}</td>
+                  <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleString()}</td>
                   <td>
                     <div className="btn-group">
                       {s.status !== 'active' && (
