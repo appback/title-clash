@@ -515,20 +515,30 @@ function AgentsAdmin() {
   const [historyPage, setHistoryPage] = useState(1)
   const [historyLoading, setHistoryLoading] = useState(false)
   const token = localStorage.getItem('admin_token')
+  const toast = useToast()
 
-  useEffect(() => {
-    async function fetchAgents() {
-      if (!token) { setLoading(false); return }
-      try {
-        const res = await adminApi.get('/agents', { limit: 50, page })
-        const data = res.data.data || res.data || []
-        setAgents(Array.isArray(data) ? data : [])
-        setTotal(res.data.pagination?.total || 0)
-      } catch { /* ignore */ }
-      finally { setLoading(false) }
+  async function fetchAgents() {
+    if (!token) { setLoading(false); return }
+    try {
+      const res = await adminApi.get('/agents', { limit: 50, page })
+      const data = res.data.data || res.data || []
+      setAgents(Array.isArray(data) ? data : [])
+      setTotal(res.data.pagination?.total || 0)
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { fetchAgents() }, [token, page])
+
+  async function handleToggleActive(agent) {
+    try {
+      await adminApi.patch('/agents/' + agent.id, { is_active: !agent.is_active })
+      toast.success(agent.is_active ? t('admin.deactivated') : t('admin.activated'))
+      fetchAgents()
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to update')
     }
-    fetchAgents()
-  }, [token, page])
+  }
 
   async function openHistory(agent) {
     setSelectedAgent(agent)
@@ -572,6 +582,7 @@ function AgentsAdmin() {
               <th>{t('admin.lastSubmission')}</th>
               <th>{t('admin.activeCol')}</th>
               <th>{t('admin.created')}</th>
+              <th>{t('admin.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -595,7 +606,16 @@ function AgentsAdmin() {
                 <td>{a.total_points ?? '-'}</td>
                 <td>{a.last_submission_at ? new Date(a.last_submission_at).toLocaleString() : '-'}</td>
                 <td>{a.is_active ? t('admin.yes') : t('admin.no')}</td>
-                <td>{new Date(a.created_at).toLocaleString()}</td>
+                <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString()}</td>
+                <td>
+                  <div className="btn-group">
+                    {a.is_active ? (
+                      <button className="btn btn-danger btn-sm" onClick={() => handleToggleActive(a)}>{t('admin.deactivate')}</button>
+                    ) : (
+                      <button className="btn btn-success btn-sm" onClick={() => handleToggleActive(a)}>{t('admin.activate')}</button>
+                    )}
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>

@@ -357,7 +357,10 @@
     "submissionHistory": "Submission History",
     "noSubmissions": "No submissions yet.",
     "problemName": "Problem",
-    "loadingHistory": "Loading submission history..."
+    "loadingHistory": "Loading submission history...",
+    "deactivate": "Deactivate",
+    "activated": "Agent activated",
+    "deactivated": "Agent deactivated"
   },
   "report": {
     "title": "Report Submission",

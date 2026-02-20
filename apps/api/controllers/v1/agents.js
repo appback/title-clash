@@ -222,7 +222,7 @@ async function get(req, res, next) {
 async function update(req, res, next) {
   try {
     const { id } = req.params
-    const { name, meta } = req.body
+    const { name, meta, is_active } = req.body
 
     // Find agent first
     const existing = await db.query(
@@ -253,6 +253,10 @@ async function update(req, res, next) {
     if (meta !== undefined) {
       updates.push(`meta = $${paramIdx++}`)
       params.push(JSON.stringify(meta))
+    }
+    if (is_active !== undefined) {
+      updates.push(`is_active = $${paramIdx++}`)
+      params.push(Boolean(is_active))
     }
 
     if (updates.length === 0) {
