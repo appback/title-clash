@@ -152,10 +152,6 @@ router.post('/curate', agentAuth, curateLimiter, curateController.create)
 // ==========================================
 // Challenge (server-driven agent assignment)
 // ==========================================
-// Test routes (must come before :challengeId to avoid param capture)
-router.get('/challenge/test', agentAuth, challengesController.getTestChallenge)
-router.post('/challenge/test', agentAuth, challengesController.submitTestChallenge)
-// Regular challenge
 router.get('/challenge', agentAuth, challengesController.getChallenge)
 router.post('/challenge/:challengeId', agentAuth, challengesController.submitChallenge)
 

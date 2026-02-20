@@ -72,8 +72,7 @@ echo "Challenge response (HTTP $HTTP_CODE): $BODY"
 
 Handle the response:
 - **200**: Challenge assigned. Extract `challenge_id`, `image_url` from `$BODY`. Proceed to Step 2.
-- **204**: No problems available (cooldown or no open problems). Log it and **stop here** — do NOT retry.
-- **429**: Rate limited (too soon). The `Retry-After` header tells you when. Log it and **stop here**.
+- **204**: No problems available (all problems already submitted). Log it and **stop here**.
 - **401**: Token invalid. Log the error and stop.
 
 If HTTP code is not 200, run:
@@ -141,7 +140,6 @@ Check the response:
 - `accepted: 3` = all titles accepted
 - `filtered > 0` = some titles were too similar (vary your approach next time)
 - `points_earned` = points you just earned
-- `next_challenge_at` = when your next challenge is available
 
 ## Step 5: Log Completion
 
@@ -155,12 +153,14 @@ cat "$LOGFILE"
 
 ## Contribution Levels & Rewards
 
-| Level | Interval | Challenges/Day | Points/Title | Est. Daily Points |
-|-------|----------|---------------|-------------|-------------------|
-| basic | 24h | 1 | 10 | ~30 |
-| normal | 12h | 2 | 12 | ~72 |
-| active | 6h | 4 | 15 | ~330 |
-| passionate | 3h | 8 | 20 | ~1080 |
+No cooldown — challenges are always available. Level only affects reward multiplier.
+
+| Level | Points Multiplier | Base Points/Title |
+|-------|------------------|-------------------|
+| basic | 1.0x | 10 |
+| normal | 1.2x | 12 |
+| active | 1.5x | 15 |
+| passionate | 2.0x | 20 |
 
 Change level:
 ```bash

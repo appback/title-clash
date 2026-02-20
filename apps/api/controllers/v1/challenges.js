@@ -14,24 +14,12 @@ const LEVEL_MULTIPLIERS = {
 /**
  * GET /api/v1/challenge
  * Request a challenge assignment. Agent auth required.
+ * No cooldown — always returns a challenge if one is available.
  */
 async function getChallenge(req, res, next) {
   try {
     const agentId = req.agent.id
-    const contributionLevel = req.agent.contribution_level || 'basic'
-
-    const result = await challengeService.getChallenge(agentId, contributionLevel)
-
-    // Rate limited — too soon for next challenge
-    if (result.retryAfter > 0) {
-      res.set('Retry-After', String(result.retryAfter))
-      return res.status(429).json({
-        error: 'TOO_MANY_REQUESTS',
-        message: 'Challenge interval not elapsed',
-        retry_after: result.retryAfter,
-        next_challenge_at: result.nextAt,
-      })
-    }
+    const result = await challengeService.getChallenge(agentId)
 
     // No problems available
     if (!result.challenge) {
@@ -123,109 +111,15 @@ async function submitChallenge(req, res, next) {
       }
     }
 
-    // Calculate next challenge time
-    const nextChallengeAt = challengeService.getNextChallengeAt(
-      new Date(), result.contributionLevel
-    )
-
     res.status(201).json({
       accepted: result.acceptedCount,
       filtered: result.filteredCount,
       titles: result.titles.map(t => ({ title: t.title, status: t.status })),
       points_earned: totalPoints,
-      next_challenge_at: nextChallengeAt,
     })
   } catch (err) {
     next(err)
   }
 }
 
-/**
- * GET /api/v1/challenge/test
- * Get a test challenge. No cooldown, no DB record. Agent auth required.
- */
-async function getTestChallenge(req, res, next) {
-  try {
-    const agentId = req.agent.id
-    const problem = await challengeService.selectProblem(agentId)
-
-    if (!problem) {
-      return res.status(204).end()
-    }
-
-    res.json({
-      problem_id: problem.id,
-      problem_title: problem.title,
-      image_url: problem.image_url,
-      test: true,
-    })
-  } catch (err) {
-    next(err)
-  }
-}
-
-/**
- * POST /api/v1/challenge/test
- * Submit test titles. Same validation, no points, no DB writes.
- */
-async function submitTestChallenge(req, res, next) {
-  try {
-    const { problem_id, titles, title } = req.body
-    let titleList = titles || (title ? [title] : null)
-
-    if (!problem_id) {
-      throw new ValidationError('problem_id is required')
-    }
-    if (!Array.isArray(titleList) || titleList.length === 0) {
-      throw new ValidationError('titles array is required (1-3 titles)')
-    }
-    if (titleList.length > 3) {
-      throw new ValidationError('Maximum 3 titles per challenge')
-    }
-
-    // Validate each title
-    const maxLen = configManager.getNumber('submission_title_max_length', 300)
-    const brokenPattern = /[\uD800-\uDFFF\uFFFD]|[\u0000-\u0008\u000E-\u001F]/
-    const results = []
-    const seenTitles = new Set()
-
-    for (const t of titleList) {
-      if (!t || String(t).trim() === '') continue
-      const trimmed = String(t).trim()
-
-      if (trimmed.length > maxLen) {
-        throw new ValidationError(`Each title must be 1-${maxLen} characters`)
-      }
-      if (brokenPattern.test(trimmed)) {
-        throw new ValidationError('Title contains invalid or broken characters')
-      }
-
-      const key = trimmed.toLowerCase()
-      if (seenTitles.has(key)) {
-        results.push({ title: trimmed, status: 'filtered_duplicate' })
-        continue
-      }
-      seenTitles.add(key)
-      results.push({ title: trimmed, status: 'accepted' })
-    }
-
-    if (results.length === 0) {
-      throw new ValidationError('At least one non-empty title is required')
-    }
-
-    const accepted = results.filter(r => r.status === 'accepted').length
-    const filtered = results.filter(r => r.status === 'filtered_duplicate').length
-
-    res.status(200).json({
-      test: true,
-      accepted,
-      filtered,
-      titles: results.map(r => ({ title: r.title, status: r.status })),
-      points_earned: 0,
-    })
-  } catch (err) {
-    next(err)
-  }
-}
-
-module.exports = { getChallenge, submitChallenge, getTestChallenge, submitTestChallenge }
+module.exports = { getChallenge, submitChallenge }

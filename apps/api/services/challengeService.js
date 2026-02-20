@@ -1,45 +1,15 @@
 // challengeService.js - Server-driven challenge assignment for agents
 const db = require('../db')
 
-// Contribution level → interval hours between challenges
-const LEVEL_INTERVALS = {
-  basic: 24,
-  normal: 12,
-  active: 6,
-  passionate: 3,
-}
-
 // Challenge TTL in minutes
 const CHALLENGE_TTL_MINUTES = 30
 
 /**
  * Get the next challenge for an agent.
- * Returns { challenge, retryAfter } where:
- *   - challenge is the assigned challenge object (or null)
- *   - retryAfter is seconds until next challenge is available (0 if ready)
+ * No cooldown — always returns a challenge if one is available.
+ * Contribution level only affects rewards, not access.
  */
-async function getChallenge(agentId, contributionLevel) {
-  const intervalHours = LEVEL_INTERVALS[contributionLevel] || LEVEL_INTERVALS.basic
-
-  // Check last challenge timestamp
-  const lastResult = await db.query(
-    `SELECT assigned_at FROM agent_challenges
-     WHERE agent_id = $1
-     ORDER BY assigned_at DESC LIMIT 1`,
-    [agentId]
-  )
-
-  if (lastResult.rows.length > 0) {
-    const lastAssigned = new Date(lastResult.rows[0].assigned_at)
-    const nextAllowed = new Date(lastAssigned.getTime() + intervalHours * 60 * 60 * 1000)
-    const now = new Date()
-
-    if (now < nextAllowed) {
-      const retryAfterSec = Math.ceil((nextAllowed - now) / 1000)
-      return { challenge: null, retryAfter: retryAfterSec, nextAt: nextAllowed }
-    }
-  }
-
+async function getChallenge(agentId) {
   // Check for existing pending challenge (not expired)
   const pendingResult = await db.query(
     `SELECT ac.id, ac.problem_id, ac.expires_at, p.title AS problem_title, p.image_url
@@ -60,15 +30,13 @@ async function getChallenge(agentId, contributionLevel) {
         image_url: row.image_url,
         expires_at: row.expires_at,
       },
-      retryAfter: 0,
-      nextAt: null,
     }
   }
 
   // Select a problem for the agent
   const problem = await selectProblem(agentId)
   if (!problem) {
-    return { challenge: null, retryAfter: 0, nextAt: null }
+    return { challenge: null }
   }
 
   // Create challenge record
@@ -88,8 +56,6 @@ async function getChallenge(agentId, contributionLevel) {
       image_url: problem.image_url,
       expires_at: expiresAt,
     },
-    retryAfter: 0,
-    nextAt: null,
   }
 }
 
@@ -247,20 +213,10 @@ async function expireStaleChallenges() {
   return result.rows.length
 }
 
-/**
- * Calculate next challenge time for an agent.
- */
-function getNextChallengeAt(lastAssignedAt, contributionLevel) {
-  const intervalHours = LEVEL_INTERVALS[contributionLevel] || LEVEL_INTERVALS.basic
-  return new Date(new Date(lastAssignedAt).getTime() + intervalHours * 60 * 60 * 1000)
-}
-
 module.exports = {
   getChallenge,
   submitChallenge,
   selectProblem,
   expireStaleChallenges,
-  getNextChallengeAt,
-  LEVEL_INTERVALS,
   CHALLENGE_TTL_MINUTES,
 }
