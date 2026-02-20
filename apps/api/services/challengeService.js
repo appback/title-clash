@@ -258,6 +258,7 @@ function getNextChallengeAt(lastAssignedAt, contributionLevel) {
 module.exports = {
   getChallenge,
   submitChallenge,
+  selectProblem,
   expireStaleChallenges,
   getNextChallengeAt,
   LEVEL_INTERVALS,

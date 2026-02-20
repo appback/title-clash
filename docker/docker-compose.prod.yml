@@ -75,8 +75,11 @@ services:
 
 volumes:
   titleclash_pgdata:
-    driver: local
+    name: docker_titleclash_pgdata
+    external: true
   api_uploads:
-    driver: local
+    name: docker_api_uploads
+    external: true
   minio_data:
-    driver: local
+    name: docker_minio_data
+    external: true

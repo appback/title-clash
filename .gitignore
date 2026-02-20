@@ -3,6 +3,7 @@ apps/api/uploads/
 .env
 *.log
 *.pem
+.claude/
 
 # Production secrets (never commit)
 docker/docker-compose.aws.override.yml
@@ -14,3 +15,30 @@ apps/api/coverage/
 
 # Test upload files
 apps/api/uploads/test-*
+
+# Build output
+client/dist/
+
+# Temporary scripts & data
+*.tar
+*.sql
+scripts/blog_samples/
+scripts/cropped/
+scripts/meme_images/
+scripts/meme_images_full/
+scripts/naver_blog.html
+scripts/sample_*.png
+Ctmpgenerate_fill_sql.js
+
+# Windows artifacts
+*.Zone.Identifier
+*Zone.Identifier
+
+# bkit state
+.bkit/
+docs/.bkit-memory.json
+docs/.pdca-snapshots/
+docs/.pdca-status.json
+
+# Misc
+scripts/check_logs.ps1
