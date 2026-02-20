@@ -9,6 +9,24 @@ import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
 import { shortId } from '../utils/shortId'
 
+function ActionGroup({ actions }) {
+  const filtered = actions.filter(Boolean)
+  if (filtered.length === 0) return null
+  return (
+    <div className="btn-group">
+      {filtered.map((action, i) => (
+        <button
+          key={action.key || i}
+          className={`btn btn-${action.variant || 'secondary'} btn-sm`}
+          onClick={action.onClick}
+        >
+          {action.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
 function Pagination({ page, total, limit, onPageChange, t }) {
   const totalPages = Math.max(1, Math.ceil(total / limit))
   if (totalPages <= 1) return null
@@ -217,23 +235,10 @@ function ProblemsAdmin() {
                 <td>{p.start_at ? new Date(p.start_at).toLocaleString() : '-'}</td>
                 <td>{p.end_at ? new Date(p.end_at).toLocaleString() : '-'}</td>
                 <td>
-                  <div className="btn-group">
-                    <button
-                      className="btn btn-primary btn-sm"
-                      onClick={() => openEdit(p)}
-                    >
-                      {t('admin.edit')}
-                    </button>
-                    {(nextStates[p.state] || []).map(ns => (
-                      <button
-                        key={ns}
-                        className="btn btn-secondary btn-sm"
-                        onClick={() => handleStateChange(p.id, ns)}
-                      >
-                        {ns}
-                      </button>
-                    ))}
-                  </div>
+                  <ActionGroup actions={[
+                    { label: t('admin.edit'), variant: 'primary', onClick: () => openEdit(p) },
+                    ...(nextStates[p.state] || []).map(ns => ({ key: ns, label: ns, variant: 'secondary', onClick: () => handleStateChange(p.id, ns) }))
+                  ]} />
                 </td>
               </tr>
             ))}
@@ -440,17 +445,11 @@ function SubmissionsAdmin() {
                   <td>{s.vote_count}</td>
                   <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleString()}</td>
                   <td>
-                    <div className="btn-group">
-                      {s.status !== 'active' && (
-                        <button className="btn btn-success btn-sm" onClick={() => handleStatusChange(s.id, 'active')}>{t('admin.activate')}</button>
-                      )}
-                      {s.status !== 'restricted' && (
-                        <button className="btn btn-secondary btn-sm" onClick={() => handleStatusChange(s.id, 'restricted')}>{t('admin.restrict')}</button>
-                      )}
-                      {s.status !== 'disqualified' && (
-                        <button className="btn btn-danger btn-sm" onClick={() => handleStatusChange(s.id, 'disqualified')}>{t('admin.disqualify')}</button>
-                      )}
-                    </div>
+                    <ActionGroup actions={[
+                      s.status !== 'active' && { label: t('admin.activate'), variant: 'success', onClick: () => handleStatusChange(s.id, 'active') },
+                      s.status !== 'restricted' && { label: t('admin.restrict'), variant: 'secondary', onClick: () => handleStatusChange(s.id, 'restricted') },
+                      s.status !== 'disqualified' && { label: t('admin.disqualify'), variant: 'danger', onClick: () => handleStatusChange(s.id, 'disqualified') }
+                    ]} />
                   </td>
                 </tr>
               ))}
@@ -486,9 +485,11 @@ function SubmissionsAdmin() {
                 <p><strong>{t('admin.reason')}:</strong> {r.reason}</p>
                 {r.detail && <p style={{ color: 'var(--color-text-secondary)', marginTop: 'var(--spacing-xs)' }}>{r.detail}</p>}
                 {r.status === 'pending' && (
-                  <div className="btn-group" style={{ marginTop: 'var(--spacing-sm)' }}>
-                    <button className="btn btn-secondary btn-sm" onClick={() => handleReviewReport(r.id, 'dismissed')}>{t('admin.dismiss')}</button>
-                    <button className="btn btn-danger btn-sm" onClick={() => handleReviewReport(r.id, 'confirmed')}>{t('admin.confirm')}</button>
+                  <div style={{ marginTop: 'var(--spacing-sm)' }}>
+                    <ActionGroup actions={[
+                      { label: t('admin.dismiss'), variant: 'secondary', onClick: () => handleReviewReport(r.id, 'dismissed') },
+                      { label: t('admin.confirm'), variant: 'danger', onClick: () => handleReviewReport(r.id, 'confirmed') }
+                    ]} />
                   </div>
                 )}
               </div>
@@ -515,7 +516,6 @@ function AgentsAdmin() {
   const [historyPage, setHistoryPage] = useState(1)
   const [historyLoading, setHistoryLoading] = useState(false)
   const token = localStorage.getItem('admin_token')
-  const toast = useToast()
 
   async function fetchAgents() {
     if (!token) { setLoading(false); return }
@@ -529,16 +529,6 @@ function AgentsAdmin() {
   }
 
   useEffect(() => { fetchAgents() }, [token, page])
-
-  async function handleToggleActive(agent) {
-    try {
-      await adminApi.patch('/agents/' + agent.id, { is_active: !agent.is_active })
-      toast.success(agent.is_active ? t('admin.deactivated') : t('admin.activated'))
-      fetchAgents()
-    } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to update')
-    }
-  }
 
   async function openHistory(agent) {
     setSelectedAgent(agent)
@@ -582,7 +572,6 @@ function AgentsAdmin() {
               <th>{t('admin.lastSubmission')}</th>
               <th>{t('admin.activeCol')}</th>
               <th>{t('admin.created')}</th>
-              <th>{t('admin.actions')}</th>
             </tr>
           </thead>
           <tbody>
@@ -607,15 +596,6 @@ function AgentsAdmin() {
                 <td>{a.last_submission_at ? new Date(a.last_submission_at).toLocaleString() : '-'}</td>
                 <td>{a.is_active ? t('admin.yes') : t('admin.no')}</td>
                 <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString()}</td>
-                <td>
-                  <div className="btn-group">
-                    {a.is_active ? (
-                      <button className="btn btn-danger btn-sm" onClick={() => handleToggleActive(a)}>{t('admin.deactivate')}</button>
-                    ) : (
-                      <button className="btn btn-success btn-sm" onClick={() => handleToggleActive(a)}>{t('admin.activate')}</button>
-                    )}
-                  </div>
-                </td>
               </tr>
             ))}
           </tbody>
