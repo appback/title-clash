@@ -499,6 +499,11 @@ function AgentsAdmin() {
   const [total, setTotal] = useState(0)
   const [page, setPage] = useState(1)
   const [loading, setLoading] = useState(true)
+  const [selectedAgent, setSelectedAgent] = useState(null)
+  const [history, setHistory] = useState([])
+  const [historyTotal, setHistoryTotal] = useState(0)
+  const [historyPage, setHistoryPage] = useState(1)
+  const [historyLoading, setHistoryLoading] = useState(false)
   const token = localStorage.getItem('admin_token')
 
   useEffect(() => {
@@ -515,8 +520,31 @@ function AgentsAdmin() {
     fetchAgents()
   }, [token, page])
 
+  async function openHistory(agent) {
+    setSelectedAgent(agent)
+    setHistoryPage(1)
+    fetchHistory(agent.id, 1)
+  }
+
+  async function fetchHistory(agentId, pg) {
+    setHistoryLoading(true)
+    try {
+      const res = await adminApi.get('/submissions/admin', { agent_id: agentId, limit: 20, page: pg })
+      setHistory(res.data.data || [])
+      setHistoryTotal(res.data.pagination?.total || 0)
+    } catch { /* ignore */ }
+    finally { setHistoryLoading(false) }
+  }
+
+  function handleHistoryPage(pg) {
+    setHistoryPage(pg)
+    if (selectedAgent) fetchHistory(selectedAgent.id, pg)
+  }
+
   if (!token) return <div className="empty-state">{t('admin.setTokenMsg')}</div>
   if (loading) return <Loading message={t('admin.loadingAgents')} />
+
+  const levelColors = { basic: 'var(--color-text-muted)', normal: 'var(--color-text-secondary)', active: 'var(--color-primary)', passionate: 'var(--color-accent, #e74c3c)' }
 
   return (
     <div>
@@ -526,6 +554,10 @@ function AgentsAdmin() {
           <thead>
             <tr>
               <th>{t('admin.nameCol')}</th>
+              <th>{t('admin.level')}</th>
+              <th>{t('admin.submissionCount')}</th>
+              <th>{t('admin.points')}</th>
+              <th>{t('admin.lastSubmission')}</th>
               <th>{t('admin.activeCol')}</th>
               <th>{t('admin.created')}</th>
             </tr>
@@ -533,7 +565,23 @@ function AgentsAdmin() {
           <tbody>
             {agents.map(a => (
               <tr key={a.id}>
-                <td>{a.name}</td>
+                <td>
+                  <button
+                    className="btn btn-ghost btn-sm"
+                    style={{ fontWeight: 600, padding: '2px 6px' }}
+                    onClick={() => openHistory(a)}
+                  >
+                    {a.name}
+                  </button>
+                </td>
+                <td>
+                  <span style={{ color: levelColors[a.contribution_level] || 'inherit', fontWeight: 500, fontSize: 'var(--text-sm)' }}>
+                    {a.contribution_level || 'basic'}
+                  </span>
+                </td>
+                <td>{a.submission_count ?? '-'}</td>
+                <td>{a.total_points ?? '-'}</td>
+                <td>{a.last_submission_at ? new Date(a.last_submission_at).toLocaleString() : '-'}</td>
                 <td>{a.is_active ? t('admin.yes') : t('admin.no')}</td>
                 <td>{new Date(a.created_at).toLocaleString()}</td>
               </tr>
@@ -543,6 +591,60 @@ function AgentsAdmin() {
       </div>
 
       <Pagination page={page} total={total} limit={50} onPageChange={setPage} t={t} />
+
+      {/* Agent Submission History Modal */}
+      <Modal
+        open={!!selectedAgent}
+        onClose={() => setSelectedAgent(null)}
+        title={`${t('admin.submissionHistory')} — ${selectedAgent?.name || ''}`}
+      >
+        {selectedAgent && (
+          <div style={{ marginBottom: 'var(--spacing-md)', display: 'flex', gap: 'var(--spacing-lg)', fontSize: 'var(--text-sm)' }}>
+            <span><strong>{t('admin.level')}:</strong> {selectedAgent.contribution_level || 'basic'}</span>
+            <span><strong>{t('admin.points')}:</strong> {selectedAgent.total_points ?? 0}</span>
+            <span><strong>{t('admin.submissionCount')}:</strong> {selectedAgent.submission_count ?? 0}</span>
+          </div>
+        )}
+        {historyLoading ? (
+          <Loading message={t('admin.loadingHistory')} />
+        ) : history.length === 0 ? (
+          <p style={{ color: 'var(--color-text-muted)', textAlign: 'center', padding: 'var(--spacing-lg)' }}>{t('admin.noSubmissions')}</p>
+        ) : (
+          <>
+            <div className="table-wrapper">
+              <table className="table">
+                <thead>
+                  <tr>
+                    <th>{t('admin.image')}</th>
+                    <th>{t('admin.titleLabel')}</th>
+                    <th>{t('admin.problemName')}</th>
+                    <th>{t('admin.status')}</th>
+                    <th>{t('admin.created')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {history.map(s => (
+                    <tr key={s.id}>
+                      <td>
+                        {s.problem_image_url ? (
+                          <img src={s.problem_image_url} alt="" style={{ width: 40, height: 40, objectFit: 'cover', borderRadius: 'var(--radius-sm)' }} />
+                        ) : (
+                          <span style={{ color: 'var(--color-text-muted)', fontSize: 'var(--text-xs)' }}>-</span>
+                        )}
+                      </td>
+                      <td>{s.title}</td>
+                      <td>{s.problem_title || shortId(s.problem_id)}</td>
+                      <td><span className={'badge badge-' + s.status}>{s.status}</span></td>
+                      <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(s.created_at).toLocaleString()}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <Pagination page={historyPage} total={historyTotal} limit={20} onPageChange={handleHistoryPage} t={t} />
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

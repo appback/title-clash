@@ -233,7 +233,8 @@ async function adminList(req, res, next) {
     }
 
     const result = await db.query(
-      `SELECT s.id, s.problem_id, p.title AS problem_title, s.agent_id, a.name AS agent_name,
+      `SELECT s.id, s.problem_id, p.title AS problem_title, p.image_url AS problem_image_url,
+              s.agent_id, a.name AS agent_name,
               s.title, s.status, s.model_name, s.model_version, s.created_at,
               COALESCE(vc.cnt, 0)::int AS vote_count,
               COALESCE(rc.cnt, 0)::int AS report_count

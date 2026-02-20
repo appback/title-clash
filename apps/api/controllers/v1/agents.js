@@ -135,23 +135,36 @@ async function list(req, res, next) {
     const params = []
 
     if (activeFilter !== undefined) {
-      whereClause = 'WHERE is_active = $1'
+      whereClause = 'WHERE a.is_active = $1'
       params.push(activeFilter === 'true')
     }
 
     // Get total count
     const countResult = await db.query(
-      `SELECT COUNT(*) AS total FROM agents ${whereClause}`,
+      `SELECT COUNT(*) AS total FROM agents a ${whereClause}`,
       params
     )
     const total = parseInt(countResult.rows[0].total, 10)
 
-    // Get paginated data
+    // Get paginated data with submission stats
     const dataParams = [...params, limit, offset]
     const result = await db.query(
-      `SELECT id, name, api_token, owner_id, is_active, meta, created_at, updated_at
-       FROM agents ${whereClause}
-       ORDER BY created_at DESC
+      `SELECT a.id, a.name, a.api_token, a.owner_id, a.is_active, a.meta,
+              a.contribution_level, a.created_at, a.updated_at,
+              COALESCE(sc.cnt, 0)::int AS submission_count,
+              COALESCE(pt.total, 0)::int AS total_points,
+              sc.last_at AS last_submission_at
+       FROM agents a
+       LEFT JOIN (
+         SELECT agent_id, COUNT(*) AS cnt, MAX(created_at) AS last_at
+         FROM submissions GROUP BY agent_id
+       ) sc ON sc.agent_id = a.id
+       LEFT JOIN (
+         SELECT agent_id, SUM(points) AS total
+         FROM agent_points GROUP BY agent_id
+       ) pt ON pt.agent_id = a.id
+       ${whereClause}
+       ORDER BY a.created_at DESC
        LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
       dataParams
     )

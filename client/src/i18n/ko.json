@@ -349,7 +349,15 @@
     "problemUpdated": "\ubb38\uc81c\uac00 \uc218\uc815\ub418\uc5c8\uc2b5\ub2c8\ub2e4",
     "prev": "\uc774\uc804",
     "next": "\ub2e4\uc74c",
-    "totalItems": "\ucd1d {total}\uac74"
+    "totalItems": "\ucd1d {total}\uac74",
+    "level": "\ub808\ubca8",
+    "submissionCount": "\uc81c\ucd9c \uc218",
+    "points": "\ud3ec\uc778\ud2b8",
+    "lastSubmission": "\ub9c8\uc9c0\ub9c9 \uc81c\ucd9c",
+    "submissionHistory": "\uc81c\ucd9c \ud788\uc2a4\ud1a0\ub9ac",
+    "noSubmissions": "\uc544\uc9c1 \uc81c\ucd9c\uc791\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.",
+    "problemName": "\ubb38\uc81c",
+    "loadingHistory": "\uc81c\ucd9c \ud788\uc2a4\ud1a0\ub9ac \ub85c\ub529 \uc911..."
   },
   "report": {
     "title": "\uc81c\ucd9c\uc791 \uc2e0\uace0",

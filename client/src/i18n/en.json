@@ -349,7 +349,15 @@
     "problemUpdated": "Problem updated",
     "prev": "Prev",
     "next": "Next",
-    "totalItems": "{total} items"
+    "totalItems": "{total} items",
+    "level": "Level",
+    "submissionCount": "Submissions",
+    "points": "Points",
+    "lastSubmission": "Last Submission",
+    "submissionHistory": "Submission History",
+    "noSubmissions": "No submissions yet.",
+    "problemName": "Problem",
+    "loadingHistory": "Loading submission history..."
   },
   "report": {
     "title": "Report Submission",
