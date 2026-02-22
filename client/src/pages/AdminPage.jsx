@@ -69,7 +69,8 @@ export default function AdminPage() {
     { id: 'submissions', label: t('admin.submissions') },
     { id: 'agents', label: t('admin.agents') },
     { id: 'statistics', label: t('admin.statistics') },
-    { id: 'settings', label: t('admin.settings') }
+    { id: 'settings', label: t('admin.settings') },
+    { id: 'activity', label: t('admin.activity') }
   ]
 
   return (
@@ -99,6 +100,7 @@ export default function AdminPage() {
       {activeTab === 'agents' && <AgentsAdmin />}
       {activeTab === 'statistics' && <StatisticsAdmin />}
       {activeTab === 'settings' && <SettingsAdmin />}
+      {activeTab === 'activity' && <ActivityAdmin />}
     </div>
   )
 }
@@ -905,6 +907,209 @@ function SettingsAdmin() {
           ))}
         </div>
       ))}
+    </div>
+  )
+}
+
+// ==========================================
+// Activity Tab
+// ==========================================
+function ActivityAdmin() {
+  const { t } = useLang()
+  const [view, setView] = useState('list') // 'list' | 'summary'
+  const [activities, setActivities] = useState([])
+  const [summaries, setSummaries] = useState([])
+  const [total, setTotal] = useState(0)
+  const [page, setPage] = useState(1)
+  const [loading, setLoading] = useState(true)
+  const [typeFilter, setTypeFilter] = useState('')
+  const [tokenInput, setTokenInput] = useState('')
+  const [tokenFilter, setTokenFilter] = useState('')
+
+  const typeLabels = {
+    game_vote: t('admin.gameVote'),
+    image_battle: t('admin.imageBattle'),
+    human_vs_ai: t('admin.humanVsAi'),
+    human_submission: t('admin.humanSubmission'),
+    title_rating: t('admin.titleRating')
+  }
+
+  async function fetchList() {
+    setLoading(true)
+    try {
+      const params = { limit: 50, page }
+      if (typeFilter) params.type = typeFilter
+      if (tokenFilter) params.guest_token = tokenFilter
+      const res = await adminApi.get('/activity/admin', params)
+      setActivities(res.data.data || [])
+      setTotal(res.data.pagination?.total || 0)
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  async function fetchSummary() {
+    setLoading(true)
+    try {
+      const res = await adminApi.get('/activity/admin/summary', { limit: 50, page })
+      setSummaries(res.data.data || [])
+      setTotal(res.data.pagination?.total || 0)
+    } catch { /* ignore */ }
+    finally { setLoading(false) }
+  }
+
+  useEffect(() => { setPage(1) }, [typeFilter, tokenFilter, view])
+  useEffect(() => {
+    if (view === 'list') fetchList()
+    else fetchSummary()
+  }, [view, typeFilter, tokenFilter, page])
+
+  function handleTokenSearch() {
+    setTokenFilter(tokenInput.trim())
+  }
+
+  function handleGuestClick(token) {
+    setTokenInput(token)
+    setTokenFilter(token)
+    setView('list')
+  }
+
+  function formatDetail(type, detail) {
+    if (!detail) return '-'
+    switch (type) {
+      case 'game_vote': return `${detail.action} (match ${detail.match_index})`
+      case 'image_battle':
+      case 'human_vs_ai': return `winner: ${detail.winner_type}`
+      case 'human_submission': return detail.title?.length > 30 ? detail.title.slice(0, 30) + '...' : detail.title
+      case 'title_rating': return `${detail.stars} stars`
+      default: return JSON.stringify(detail)
+    }
+  }
+
+  return (
+    <div>
+      <div className="section-header">
+        <h2>{t('admin.activityHistory')}</h2>
+        <div className="btn-group">
+          <button className={'btn btn-sm ' + (view === 'list' ? 'btn-primary' : 'btn-secondary')} onClick={() => setView('list')}>
+            {t('admin.list')}
+          </button>
+          <button className={'btn btn-sm ' + (view === 'summary' ? 'btn-primary' : 'btn-secondary')} onClick={() => setView('summary')}>
+            {t('admin.summary')}
+          </button>
+        </div>
+      </div>
+
+      {view === 'list' && (
+        <div className="filter-bar" style={{ display: 'flex', gap: 'var(--spacing-sm)', marginBottom: 'var(--spacing-md)', flexWrap: 'wrap', alignItems: 'center' }}>
+          <select className="input select" style={{ width: 'auto' }}
+            value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+            <option value="">{t('admin.allTypes')}</option>
+            <option value="game_vote">{t('admin.gameVote')}</option>
+            <option value="image_battle">{t('admin.imageBattle')}</option>
+            <option value="human_vs_ai">{t('admin.humanVsAi')}</option>
+            <option value="human_submission">{t('admin.humanSubmission')}</option>
+            <option value="title_rating">{t('admin.titleRating')}</option>
+          </select>
+          <input
+            className="input"
+            style={{ width: '200px' }}
+            placeholder={t('admin.guestTokenSearch')}
+            value={tokenInput}
+            onChange={e => setTokenInput(e.target.value)}
+            onKeyDown={e => e.key === 'Enter' && handleTokenSearch()}
+          />
+          <button className="btn btn-secondary btn-sm" onClick={handleTokenSearch}>{t('admin.search')}</button>
+          {tokenFilter && (
+            <button className="btn btn-ghost btn-sm" onClick={() => { setTokenInput(''); setTokenFilter('') }}>
+              {t('admin.clear')}
+            </button>
+          )}
+        </div>
+      )}
+
+      {loading ? <Loading message={t('admin.loadingActivity')} /> : view === 'list' ? (
+        activities.length === 0 ? (
+          <div className="empty-state">{t('admin.noActivity')}</div>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('admin.time')}</th>
+                  <th>{t('admin.guest')}</th>
+                  <th>{t('admin.activityType')}</th>
+                  <th>{t('admin.detail')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {activities.map((a, i) => (
+                  <tr key={i}>
+                    <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(a.created_at).toLocaleString()}</td>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)', padding: '2px 4px' }}
+                        onClick={() => handleGuestClick(a.guest_token)}
+                      >
+                        {a.guest_token?.slice(0, 8)}
+                      </button>
+                    </td>
+                    <td><span className="badge">{typeLabels[a.activity_type] || a.activity_type}</span></td>
+                    <td style={{ fontSize: 'var(--text-sm)' }}>{formatDetail(a.activity_type, a.detail)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      ) : (
+        summaries.length === 0 ? (
+          <div className="empty-state">{t('admin.noActivity')}</div>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table">
+              <thead>
+                <tr>
+                  <th>{t('admin.guest')}</th>
+                  <th>{t('admin.totalActivities')}</th>
+                  <th>{t('admin.gameVote')}</th>
+                  <th>{t('admin.imageBattle')}</th>
+                  <th>{t('admin.humanVsAi')}</th>
+                  <th>{t('admin.humanSubmission')}</th>
+                  <th>{t('admin.titleRating')}</th>
+                  <th>{t('admin.gamesCompleted')}</th>
+                  <th>{t('admin.lastActivity')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {summaries.map((s, i) => (
+                  <tr key={i}>
+                    <td>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)', padding: '2px 4px' }}
+                        onClick={() => handleGuestClick(s.guest_token)}
+                      >
+                        {s.guest_token?.slice(0, 8)}
+                      </button>
+                    </td>
+                    <td>{s.total_activities}</td>
+                    <td>{s.game_votes || 0}</td>
+                    <td>{s.image_battles || 0}</td>
+                    <td>{s.human_vs_ai || 0}</td>
+                    <td>{s.human_submissions || 0}</td>
+                    <td>{s.title_ratings || 0}</td>
+                    <td>{s.games_completed}/{s.games_started}</td>
+                    <td style={{ fontSize: 'var(--text-xs)', whiteSpace: 'nowrap' }}>{new Date(s.last_activity).toLocaleString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )
+      )}
+
+      <Pagination page={page} total={total} limit={50} onPageChange={setPage} t={t} />
     </div>
   )
 }

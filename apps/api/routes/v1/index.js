@@ -22,6 +22,7 @@ const gamesController = require('../../controllers/v1/games')
 const pointsController = require('../../controllers/v1/points')
 const ratingsController = require('../../controllers/v1/ratings')
 const challengesController = require('../../controllers/v1/challenges')
+const activityController = require('../../controllers/v1/activity')
 
 // Sub-routers for routes that share a prefix and all have the same auth
 const authRoutes = require('./auth')
@@ -154,6 +155,12 @@ router.post('/curate', agentAuth, curateLimiter, curateController.create)
 // ==========================================
 router.get('/challenge', agentAuth, challengesController.getChallenge)
 router.post('/challenge/:challengeId', agentAuth, challengesController.submitChallenge)
+
+// ==========================================
+// Activity (admin only - human activity history)
+// ==========================================
+router.get('/activity/admin', jwtAuth, adminAuth, activityController.list)
+router.get('/activity/admin/summary', jwtAuth, adminAuth, activityController.summary)
 
 // ==========================================
 // Battle modes (public, optional auth for voter tracking)
