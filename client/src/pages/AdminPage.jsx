@@ -939,7 +939,7 @@ function ActivityAdmin() {
     try {
       const params = { limit: 50, page }
       if (typeFilter) params.type = typeFilter
-      if (tokenFilter) params.guest_token = tokenFilter
+      if (tokenFilter) params.identity = tokenFilter
       const res = await adminApi.get('/activity/admin', params)
       setActivities(res.data.data || [])
       setTotal(res.data.pagination?.total || 0)
@@ -967,9 +967,9 @@ function ActivityAdmin() {
     setTokenFilter(tokenInput.trim())
   }
 
-  function handleGuestClick(token) {
-    setTokenInput(token)
-    setTokenFilter(token)
+  function handleIdentityClick(identity) {
+    setTokenInput(identity)
+    setTokenFilter(identity)
     setView('list')
   }
 
@@ -1036,7 +1036,7 @@ function ActivityAdmin() {
               <thead>
                 <tr>
                   <th>{t('admin.time')}</th>
-                  <th>{t('admin.guest')}</th>
+                  <th>{t('admin.identity')}</th>
                   <th>{t('admin.activityType')}</th>
                   <th>{t('admin.detail')}</th>
                 </tr>
@@ -1049,10 +1049,11 @@ function ActivityAdmin() {
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)', padding: '2px 4px' }}
-                        onClick={() => handleGuestClick(a.guest_token)}
+                        onClick={() => handleIdentityClick(a.identity)}
                       >
-                        {a.guest_token?.slice(0, 8)}
+                        {a.identity_type === 'user' ? a.identity : a.identity?.slice(0, 8)}
                       </button>
+                      {a.identity_type === 'user' && <span className="badge badge-active" style={{ marginLeft: 4, fontSize: '10px' }}>user</span>}
                     </td>
                     <td><span className="badge">{typeLabels[a.activity_type] || a.activity_type}</span></td>
                     <td style={{ fontSize: 'var(--text-sm)' }}>{formatDetail(a.activity_type, a.detail)}</td>
@@ -1070,7 +1071,7 @@ function ActivityAdmin() {
             <table className="table">
               <thead>
                 <tr>
-                  <th>{t('admin.guest')}</th>
+                  <th>{t('admin.identity')}</th>
                   <th>{t('admin.totalActivities')}</th>
                   <th>{t('admin.gameVote')}</th>
                   <th>{t('admin.imageBattle')}</th>
@@ -1088,10 +1089,11 @@ function ActivityAdmin() {
                       <button
                         className="btn btn-ghost btn-sm"
                         style={{ fontFamily: 'monospace', fontSize: 'var(--text-xs)', padding: '2px 4px' }}
-                        onClick={() => handleGuestClick(s.guest_token)}
+                        onClick={() => handleIdentityClick(s.identity)}
                       >
-                        {s.guest_token?.slice(0, 8)}
+                        {s.identity_type === 'user' ? s.identity : s.identity?.slice(0, 8)}
                       </button>
+                      {s.identity_type === 'user' && <span className="badge badge-active" style={{ marginLeft: 4, fontSize: '10px' }}>user</span>}
                     </td>
                     <td>{s.total_activities}</td>
                     <td>{s.game_votes || 0}</td>
