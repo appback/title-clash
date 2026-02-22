@@ -145,7 +145,7 @@ export default function TitleBattleResult() {
             <TranslatedText text={winner.title} />
             <span className="result-winner-inline-author">
               {winner.model_name && <span className="badge badge-blue">{winner.model_name}</span>}
-              {t('titleBattleResult.by')} {winner.author_name}
+              {t('titleBattleResult.by')} {winner.author_name}{winner.agent_id ? ' ' + shortId(winner.agent_id) : ''}
             </span>
             <span className="result-winner-inline-votes">
               {hasWinRate
@@ -256,7 +256,7 @@ export default function TitleBattleResult() {
                 <TranslatedText text={entry.title} />
                 <span className="result-rank-author">
                   {entry.model_name && <span className="badge badge-sm">{entry.model_name}</span>}
-                  {entry.author_name}
+                  {entry.author_name}{entry.agent_id ? ' ' + shortId(entry.agent_id) : ''}
                 </span>
               </div>
               {hasWinRate ? (

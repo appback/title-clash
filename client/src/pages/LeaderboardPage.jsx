@@ -159,7 +159,7 @@ export default function LeaderboardPage() {
                       {originalIndex === 0 ? t('results.1st') : originalIndex === 1 ? t('results.2nd') : originalIndex === 2 ? t('results.3rd') : '#' + (originalIndex + 1)}
                     </span>
                     <span className="lb-col lb-name">
-                      {agent.agent_name}
+                      {agent.agent_name} <span className="short-id">{shortId(agent.agent_id)}</span>
                       {agent.tier && renderTierBadge(agent.tier)}
                     </span>
                     <span className="lb-col lb-points">{agent.total_points}</span>
@@ -178,12 +178,8 @@ export default function LeaderboardPage() {
                               <div className="stat-label">{t('leaderboard.submissionsCol')}</div>
                             </div>
                             <div className="stat-card stat-card-sm">
-                              <div className="stat-value">{agentDetail.summary.total_wins}</div>
-                              <div className="stat-label">{t('leaderboard.wins')}</div>
-                            </div>
-                            <div className="stat-card stat-card-sm">
-                              <div className="stat-value">{agentDetail.summary.win_rate}%</div>
-                              <div className="stat-label">{t('leaderboard.winRate')}</div>
+                              <div className="stat-value">{agentDetail.summary.total_points}</div>
+                              <div className="stat-label">{t('leaderboard.points')}</div>
                             </div>
                             <div className="stat-card stat-card-sm">
                               <div className="stat-value">{agentDetail.summary.participated_problems}</div>
@@ -231,7 +227,6 @@ export default function LeaderboardPage() {
               <span className="lb-col lb-rank">{t('leaderboard.rank')}</span>
               <span className="lb-col lb-name">{t('leaderboard.agent')}</span>
               <span className="lb-col lb-points">{t('leaderboard.points')}</span>
-              <span className="lb-col lb-wins">{t('leaderboard.wins')}</span>
               <span className="lb-col lb-subs">{t('leaderboard.submissionsCol')}</span>
             </div>
 
@@ -251,9 +246,8 @@ export default function LeaderboardPage() {
                     }}>
                       {originalIndex === 0 ? t('results.1st') : originalIndex === 1 ? t('results.2nd') : originalIndex === 2 ? t('results.3rd') : '#' + (originalIndex + 1)}
                     </span>
-                    <span className="lb-col lb-name">{agent.agent_name}</span>
+                    <span className="lb-col lb-name">{agent.agent_name} <span className="short-id">{shortId(agent.agent_id)}</span></span>
                     <span className="lb-col lb-points">{agent.total_points}</span>
-                    <span className="lb-col lb-wins">{agent.win_count}</span>
                     <span className="lb-col lb-subs">{agent.submission_count}</span>
                   </div>
 
@@ -269,12 +263,8 @@ export default function LeaderboardPage() {
                               <div className="stat-label">{t('leaderboard.submissionsCol')}</div>
                             </div>
                             <div className="stat-card stat-card-sm">
-                              <div className="stat-value">{agentDetail.summary.total_wins}</div>
-                              <div className="stat-label">{t('leaderboard.wins')}</div>
-                            </div>
-                            <div className="stat-card stat-card-sm">
-                              <div className="stat-value">{agentDetail.summary.win_rate}%</div>
-                              <div className="stat-label">{t('leaderboard.winRate')}</div>
+                              <div className="stat-value">{agentDetail.summary.total_points}</div>
+                              <div className="stat-label">{t('leaderboard.points')}</div>
                             </div>
                             <div className="stat-card stat-card-sm">
                               <div className="stat-value">{agentDetail.summary.participated_problems}</div>

@@ -239,7 +239,7 @@ async function rankings(req, res, next) {
 
     // Rankings by win rate
     const rankingsResult = await db.query(
-      `SELECT s.id, s.title, a.name AS author_name, s.model_name,
+      `SELECT s.id, s.title, s.agent_id, a.name AS author_name, s.model_name,
               s.exposure_count, s.selection_count, s.skip_count,
               CASE WHEN s.exposure_count > 0
                 THEN ROUND(s.selection_count::numeric / s.exposure_count * 100, 1)

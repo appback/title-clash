@@ -26,8 +26,7 @@ export default function Nav() {
     { to: '/', label: t('nav.home') },
     { to: '/battle', label: t('nav.battle') },
     { to: '/rounds', label: t('nav.rounds') },
-    { to: '/results', label: t('nav.results') },
-    { to: '/leaderboard', label: t('nav.leaderboard') },
+{ to: '/leaderboard', label: t('nav.leaderboard') },
     isAdmin
       ? { to: '/admin', label: t('nav.admin') }
       : { to: '/login', label: t('nav.login') }

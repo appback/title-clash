@@ -7,7 +7,6 @@ import Nav from './components/Nav'
 import Footer from './components/Footer'
 import App from './pages/App'
 import RoundsPage from './pages/RoundsPage'
-import ResultsPage from './pages/ResultsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
 import AdminPage from './pages/AdminPage'
 import LoginPage from './pages/LoginPage'
@@ -18,6 +17,7 @@ import TitleBattleResult from './pages/TitleBattleResult'
 import ImageBattlePlay from './pages/ImageBattlePlay'
 import HumanVsAiBattlePlay from './pages/HumanVsAiBattlePlay'
 import TitleRatingPage from './pages/TitleRatingPage'
+import AuthCallbackPage from './pages/AuthCallbackPage'
 import './styles.css'
 
 // Apply saved theme on load
@@ -39,9 +39,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/rounds/:problemId" element={<RoundsPage />} />
               <Route path="/vote" element={<Navigate to="/rounds" replace />} />
               <Route path="/vote/:problemId" element={<Navigate to="/rounds" replace />} />
-              <Route path="/results" element={<ResultsPage />} />
-              <Route path="/results/:problemId" element={<ResultsPage />} />
-              <Route path="/leaderboard" element={<LeaderboardPage />} />
+<Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/login" element={<LoginPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/battle" element={<BattlePage />} />
@@ -53,6 +51,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/battle/image/play" element={<ImageBattlePlay />} />
               <Route path="/battle/human-vs-ai/play" element={<HumanVsAiBattlePlay />} />
               <Route path="/battle/rating" element={<TitleRatingPage />} />
+              <Route path="/auth/callback" element={<AuthCallbackPage />} />
             </Routes>
           </main>
           <Footer />

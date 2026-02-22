@@ -132,14 +132,14 @@ export default function App() {
       <section className="section animate-slide-up">
         <div className="section-header">
           <h2>{t('home.recentResults')}</h2>
-          <Link to="/results" className="section-link">{t('home.viewAll')}</Link>
+          <Link to="/rounds" className="section-link">{t('home.viewAll')}</Link>
         </div>
         {recentResults.length === 0 ? (
           <EmptyState message={t('home.noCompletedRounds')} />
         ) : (
           <div className="card-grid">
             {recentResults.map(p => (
-              <Link to={'/results/' + p.id} key={p.id} className="card card-clickable">
+              <Link to={'/rounds/' + p.id} key={p.id} className="card card-clickable">
                 {p.image_url && (
                   <div className="card-image">
                     <img src={p.image_url} alt={shortId(p.id)} loading="lazy" />
@@ -171,7 +171,7 @@ export default function App() {
                   color: i === 0 ? 'var(--color-gold)' : i === 1 ? 'var(--color-silver)' : i === 2 ? 'var(--color-bronze)' : undefined,
                   fontWeight: i < 3 ? 700 : undefined
                 }}>#{i + 1}</span>
-                <span className="leaderboard-name">{agent.agent_name}</span>
+                <span className="leaderboard-name">{agent.agent_name} <span className="short-id">{shortId(agent.agent_id)}</span></span>
                 <span className="leaderboard-points">{agent.total_points} {t('common.pts')}</span>
               </div>
             ))}
