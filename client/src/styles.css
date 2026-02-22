@@ -4,23 +4,23 @@
 
 /* CSS Variables */
 :root {
-  --color-primary: #4f46e5;
-  --color-primary-hover: #4338ca;
-  --color-primary-light: #eef2ff;
+  --color-primary: #6c5ce7;
+  --color-primary-hover: #5a4bd1;
+  --color-primary-light: #f0edff;
   --color-secondary: #64748b;
   --color-secondary-hover: #475569;
-  --color-success: #16a34a;
-  --color-success-light: #f0fdf4;
+  --color-success: #00b894;
+  --color-success-light: #e6f9f3;
   --color-warning: #d97706;
   --color-warning-light: #fffbeb;
-  --color-danger: #dc2626;
-  --color-danger-light: #fef2f2;
+  --color-danger: #e17055;
+  --color-danger-light: #fdf0ed;
 
-  --color-bg: #f8fafc;
+  --color-bg: #f5f6fa;
   --color-surface: #ffffff;
-  --color-border: #e2e8f0;
+  --color-border: #e2e5ee;
   --color-text: #1e293b;
-  --color-text-secondary: #64748b;
+  --color-text-secondary: #6b7280;
   --color-text-muted: #94a3b8;
 
   --font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -42,17 +42,17 @@
   --spacing-2xl: 48px;
 
   /* === NEW: Extended color palette === */
-  --color-primary-50: #eef2ff;
-  --color-primary-100: #e0e7ff;
-  --color-primary-200: #c7d2fe;
-  --color-primary-500: #6366f1;
-  --color-primary-600: #4f46e5;   /* same as existing --color-primary */
-  --color-primary-700: #4338ca;   /* same as existing --color-primary-hover */
-  --color-primary-800: #3730a3;
+  --color-primary-50: #f0edff;
+  --color-primary-100: #ddd6fe;
+  --color-primary-200: #c4b5fd;
+  --color-primary-500: #8b7cf6;
+  --color-primary-600: #6c5ce7;   /* same as existing --color-primary */
+  --color-primary-700: #5a4bd1;   /* same as existing --color-primary-hover */
+  --color-primary-800: #4c3db5;
 
-  --color-gold: #f59e0b;
-  --color-silver: #9ca3af;
-  --color-bronze: #d97706;
+  --color-gold: #ffd700;
+  --color-silver: #c0c0c0;
+  --color-bronze: #cd7f32;
 
   /* === NEW: Typography scale === */
   --text-xs: 0.75rem;      /* 12px */
@@ -92,13 +92,13 @@
 }
 
 [data-theme="dark"] {
-  --color-bg: #0f172a;
-  --color-surface: #1e293b;
-  --color-border: #334155;
+  --color-bg: #0f1117;
+  --color-surface: #1a1d27;
+  --color-border: #2d3148;
   --color-text: #f1f5f9;
   --color-text-secondary: #94a3b8;
   --color-text-muted: #64748b;
-  --color-primary-light: #1e1b4b;
+  --color-primary-light: #1c1935;
 
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
   --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
@@ -2276,7 +2276,7 @@ img {
   font-weight: 800;
   font-size: var(--text-lg);
   align-self: center;
-  box-shadow: 0 0 20px rgba(220, 38, 38, 0.4);
+  box-shadow: 0 0 20px rgba(225, 112, 85, 0.4);
   animation: vsAppear 0.4s ease-out;
   flex-shrink: 0;
 }
@@ -2363,8 +2363,8 @@ img {
 }
 
 @keyframes winPulse {
-  0% { box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.5); }
-  50% { box-shadow: 0 0 0 12px rgba(79, 70, 229, 0); }
+  0% { box-shadow: 0 0 0 0 rgba(108, 92, 231, 0.5); }
+  50% { box-shadow: 0 0 0 12px rgba(108, 92, 231, 0); }
   100% { box-shadow: 0 0 0 3px var(--color-primary-100); }
 }
 
@@ -2686,16 +2686,16 @@ img {
 }
 
 [data-theme="dark"] .clash-card-winner {
-  background: rgba(79, 70, 229, 0.15);
+  background: rgba(108, 92, 231, 0.15);
   border-color: var(--color-primary);
 }
 
 [data-theme="dark"] .vs-badge {
-  box-shadow: 0 0 24px rgba(220, 38, 38, 0.5);
+  box-shadow: 0 0 24px rgba(225, 112, 85, 0.5);
 }
 
 [data-theme="dark"] .clash-card-selected {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(108, 92, 231, 0.1);
   border-color: var(--color-primary);
 }
 
@@ -3597,12 +3597,12 @@ img {
 }
 
 [data-theme="dark"] .match-card-selected {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(108, 92, 231, 0.1);
   border-color: var(--color-primary);
 }
 
 [data-theme="dark"] .match-card-winner {
-  background: rgba(22, 163, 74, 0.1);
+  background: rgba(0, 184, 148, 0.1);
   border-color: var(--color-success);
 }
 
@@ -3613,11 +3613,11 @@ img {
 }
 
 [data-theme="dark"] .result-winner {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1), rgba(245, 158, 11, 0.05));
+  background: linear-gradient(135deg, rgba(255, 215, 0, 0.1), rgba(255, 215, 0, 0.05));
 }
 
 [data-theme="dark"] .result-rank-top {
-  background: rgba(245, 158, 11, 0.05);
+  background: rgba(255, 215, 0, 0.05);
 }
 
 [data-theme="dark"] .result-rankings,
@@ -3632,11 +3632,11 @@ img {
 }
 
 [data-theme="dark"] .bracket-entry-winner {
-  background: rgba(22, 163, 74, 0.1);
+  background: rgba(0, 184, 148, 0.1);
 }
 
 [data-theme="dark"] .badge-green {
-  background: rgba(22, 163, 74, 0.15);
+  background: rgba(0, 184, 148, 0.15);
 }
 
 [data-theme="dark"] .badge-gray {
@@ -3644,7 +3644,7 @@ img {
 }
 
 [data-theme="dark"] .badge-blue {
-  background: rgba(79, 70, 229, 0.15);
+  background: rgba(108, 92, 231, 0.15);
 }
 
 /* ==============================
@@ -3858,7 +3858,7 @@ img {
 }
 
 [data-theme="dark"] .human-champion {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(108, 92, 231, 0.1);
 }
 
 [data-theme="dark"] .human-form-input,
@@ -3873,11 +3873,11 @@ img {
 }
 
 [data-theme="dark"] .human-my-submission {
-  background: rgba(22, 163, 74, 0.1);
+  background: rgba(0, 184, 148, 0.1);
 }
 
 [data-theme="dark"] .battle-play-winner-title {
-  background: rgba(79, 70, 229, 0.1);
+  background: rgba(108, 92, 231, 0.1);
 }
 
 /* ========================================
