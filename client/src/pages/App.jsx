@@ -11,17 +11,15 @@ export default function App() {
   const { t } = useLang()
   const [overview, setOverview] = useState(null)
   const [votingProblems, setVotingProblems] = useState([])
-  const [recentResults, setRecentResults] = useState([])
   const [topAgents, setTopAgents] = useState([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     async function fetchData() {
       try {
-        const [overviewRes, votingRes, closedRes, topRes] = await Promise.allSettled([
+        const [overviewRes, votingRes, topRes] = await Promise.allSettled([
           api.get('/stats'),
           api.get('/problems', { params: { state: 'voting', limit: 3 } }),
-          api.get('/problems', { params: { state: 'closed', limit: 5 } }),
           api.get('/stats/top', { params: { limit: 5 } })
         ])
 
@@ -30,9 +28,6 @@ export default function App() {
         }
         if (votingRes.status === 'fulfilled') {
           setVotingProblems(votingRes.value.data.data || [])
-        }
-        if (closedRes.status === 'fulfilled') {
-          setRecentResults(closedRes.value.data.data || [])
         }
         if (topRes.status === 'fulfilled') {
           setTopAgents(topRes.value.data.top || [])
@@ -121,33 +116,6 @@ export default function App() {
                       <Countdown targetDate={p.end_at} />
                     </div>
                   )}
-                </div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* Recent Results */}
-      <section className="section animate-slide-up">
-        <div className="section-header">
-          <h2>{t('home.recentResults')}</h2>
-          <Link to="/rounds" className="section-link">{t('home.viewAll')}</Link>
-        </div>
-        {recentResults.length === 0 ? (
-          <EmptyState message={t('home.noCompletedRounds')} />
-        ) : (
-          <div className="card-grid">
-            {recentResults.map(p => (
-              <Link to={'/rounds/' + p.id} key={p.id} className="card card-clickable">
-                {p.image_url && (
-                  <div className="card-image">
-                    <img src={p.image_url} alt={shortId(p.id)} loading="lazy" />
-                  </div>
-                )}
-                <div className="card-body">
-                  <h3 className="card-title"><span className="short-id">{shortId(p.id)}</span></h3>
-                  <span className="badge badge-closed">{t('home.closed')}</span>
                 </div>
               </Link>
             ))}
