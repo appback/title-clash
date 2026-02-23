@@ -12,8 +12,8 @@ function get(obj, path) {
 
 export function LangProvider({ children }) {
   const [lang, setLangState] = useState(() => {
-    if (typeof window === 'undefined') return 'ko'
-    return localStorage.getItem('lang') || 'ko'
+    if (typeof window === 'undefined') return 'en'
+    return localStorage.getItem('lang') || 'en'
   })
 
   const setLang = useCallback((l) => {

@@ -161,6 +161,7 @@ async function hubLogin(req, res, next) {
     // Find or create TC user by hub_user_id
     const hubUserId = hubResult.userId
     const hubDisplayName = hubResult.displayName || (hubResult.email ? hubResult.email.split('@')[0] : 'User')
+    const hubRole = hubResult.role === 'admin' ? 'admin' : 'voter'
     let user
 
     const existing = await db.query('SELECT * FROM users WHERE hub_user_id = $1', [hubUserId])
@@ -170,10 +171,11 @@ async function hubLogin(req, res, next) {
       const newName = (hubResult.displayName && hubResult.displayName !== user.display_name)
         ? hubResult.displayName : user.display_name || hubDisplayName
       await db.query(
-        'UPDATE users SET display_name = $1, hub_token = $2, avatar_url = COALESCE($3, avatar_url) WHERE id = $4',
-        [newName, hubToken, hubResult.avatarUrl || null, user.id]
+        'UPDATE users SET display_name = $1, hub_token = $2, avatar_url = COALESCE($3, avatar_url), role = $4 WHERE id = $5',
+        [newName, hubToken, hubResult.avatarUrl || null, hubRole, user.id]
       )
       user.display_name = newName
+      user.role = hubRole
       if (hubResult.avatarUrl) user.avatar_url = hubResult.avatarUrl
     } else {
       // Try matching by email
@@ -182,8 +184,8 @@ async function hubLogin(req, res, next) {
         if (emailMatch.rows.length > 0) {
           user = emailMatch.rows[0]
           await db.query(
-            'UPDATE users SET hub_user_id = $1, display_name = COALESCE(display_name, $2), hub_token = $3, avatar_url = COALESCE($4, avatar_url) WHERE id = $5',
-            [hubUserId, hubDisplayName, hubToken, hubResult.avatarUrl || null, user.id]
+            'UPDATE users SET hub_user_id = $1, display_name = COALESCE(display_name, $2), hub_token = $3, avatar_url = COALESCE($4, avatar_url), role = $5 WHERE id = $6',
+            [hubUserId, hubDisplayName, hubToken, hubResult.avatarUrl || null, hubRole, user.id]
           )
           user.hub_user_id = hubUserId
           if (!user.display_name) user.display_name = hubDisplayName
@@ -194,9 +196,9 @@ async function hubLogin(req, res, next) {
         // Create new user (no password)
         const result = await db.query(
           `INSERT INTO users (email, name, display_name, role, hub_user_id, hub_token, avatar_url)
-           VALUES ($1, $2, $3, 'voter', $4, $5, $6)
+           VALUES ($1, $2, $3, $4, $5, $6, $7)
            RETURNING *`,
-          [hubResult.email, hubDisplayName, hubDisplayName, hubUserId, hubToken, hubResult.avatarUrl || null]
+          [hubResult.email, hubDisplayName, hubDisplayName, hubRole, hubUserId, hubToken, hubResult.avatarUrl || null]
         )
         user = result.rows[0]
       }

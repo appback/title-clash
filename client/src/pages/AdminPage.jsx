@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Navigate } from 'react-router-dom'
 import api from '../api'
-import { adminApi } from '../api'
+import { authApi } from '../api'
 import Loading from '../components/Loading'
 import Modal from '../components/Modal'
 import ImageUpload from '../components/ImageUpload'
@@ -52,12 +52,12 @@ function Pagination({ page, total, limit, onPageChange, t }) {
 export default function AdminPage() {
   const { t } = useLang()
   const [activeTab, setActiveTab] = useState('problems')
-  const [token, setToken] = useState(localStorage.getItem('admin_token'))
+  const [token, setToken] = useState(localStorage.getItem('tc_token'))
 
   function handleLogout() {
-    localStorage.removeItem('admin_token')
+    localStorage.removeItem('tc_token')
     setToken(null)
-    window.dispatchEvent(new Event('admin-auth-change'))
+    window.dispatchEvent(new Event('tc-auth-change'))
   }
 
   if (!token) {
@@ -121,7 +121,7 @@ function ProblemsAdmin() {
   const [editForm, setEditForm] = useState({ description: '', image_url: '' })
   const [editSubmitting, setEditSubmitting] = useState(false)
   const toast = useToast()
-  const token = localStorage.getItem('admin_token')
+  const token = localStorage.getItem('tc_token')
 
   async function fetchProblems() {
     try {
@@ -138,7 +138,7 @@ function ProblemsAdmin() {
     if (!token) { toast.error('Admin token required.'); return }
     setSubmitting(true)
     try {
-      await adminApi.post('/problems', {
+      await authApi.post('/problems', {
         description: form.description,
         image_url: form.image_url || undefined,
         start_at: form.start_at ? new Date(form.start_at).toISOString() : undefined,
@@ -156,7 +156,7 @@ function ProblemsAdmin() {
   async function handleStateChange(problemId, newState) {
     if (!token) { toast.error('Admin token required'); return }
     try {
-      await adminApi.patch('/problems/' + problemId, { state: newState })
+      await authApi.patch('/problems/' + problemId, { state: newState })
       toast.success(t('admin.stateUpdated') + ' ' + newState)
       fetchProblems()
     } catch (err) {
@@ -184,7 +184,7 @@ function ProblemsAdmin() {
         setEditSubmitting(false)
         return
       }
-      await adminApi.patch('/problems/' + editProblem.id, changes)
+      await authApi.patch('/problems/' + editProblem.id, changes)
       toast.success(t('admin.problemUpdated'))
       setEditProblem(null)
       fetchProblems()
@@ -346,7 +346,7 @@ function SubmissionsAdmin() {
       const params = { limit: 50, page }
       if (filters.status) params.status = filters.status
       if (filters.has_reports) params.has_reports = filters.has_reports
-      const res = await adminApi.get('/submissions/admin', params)
+      const res = await authApi.get('/submissions/admin', params)
       setSubmissions(res.data.data || [])
       setTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }
@@ -358,7 +358,7 @@ function SubmissionsAdmin() {
 
   async function handleStatusChange(id, newStatus) {
     try {
-      await adminApi.patch('/submissions/' + id + '/status', { status: newStatus })
+      await authApi.patch('/submissions/' + id + '/status', { status: newStatus })
       toast.success('Status updated')
       fetchSubmissions()
     } catch (err) {
@@ -368,7 +368,7 @@ function SubmissionsAdmin() {
 
   async function showReports(submissionId) {
     try {
-      const res = await adminApi.get('/reports', { submission_id: submissionId, limit: 50 })
+      const res = await authApi.get('/reports', { submission_id: submissionId, limit: 50 })
       setReports(res.data.data || [])
       setReportDetail(submissionId)
     } catch { /* ignore */ }
@@ -376,7 +376,7 @@ function SubmissionsAdmin() {
 
   async function handleReviewReport(reportId, status) {
     try {
-      await adminApi.patch('/reports/' + reportId, { status })
+      await authApi.patch('/reports/' + reportId, { status })
       toast.success('Report ' + status)
       showReports(reportDetail)
       fetchSubmissions()
@@ -516,12 +516,12 @@ function AgentsAdmin() {
   const [historyTotal, setHistoryTotal] = useState(0)
   const [historyPage, setHistoryPage] = useState(1)
   const [historyLoading, setHistoryLoading] = useState(false)
-  const token = localStorage.getItem('admin_token')
+  const token = localStorage.getItem('tc_token')
 
   async function fetchAgents() {
     if (!token) { setLoading(false); return }
     try {
-      const res = await adminApi.get('/agents', { limit: 50, page })
+      const res = await authApi.get('/agents', { limit: 50, page })
       const data = res.data.data || res.data || []
       setAgents(Array.isArray(data) ? data : [])
       setTotal(res.data.pagination?.total || 0)
@@ -540,7 +540,7 @@ function AgentsAdmin() {
   async function fetchHistory(agentId, pg) {
     setHistoryLoading(true)
     try {
-      const res = await adminApi.get('/submissions/admin', { agent_id: agentId, limit: 20, page: pg })
+      const res = await authApi.get('/submissions/admin', { agent_id: agentId, limit: 20, page: pg })
       setHistory(res.data.data || [])
       setHistoryTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }
@@ -673,7 +673,7 @@ function StatisticsAdmin() {
   useEffect(() => {
     async function fetchStats() {
       try {
-        const res = await adminApi.get('/stats/admin')
+        const res = await authApi.get('/stats/admin')
         setData(res.data)
       } catch { /* ignore */ }
       finally { setLoading(false) }
@@ -815,7 +815,7 @@ function SettingsAdmin() {
 
   async function fetchSettings() {
     try {
-      const res = await adminApi.get('/settings')
+      const res = await authApi.get('/settings')
       setSettings(res.data.settings || {})
       setEdits({})
     } catch { /* ignore */ }
@@ -839,7 +839,7 @@ function SettingsAdmin() {
         const num = Number(trimmed)
         processed[key] = !isNaN(num) && trimmed !== '' && typeof settings[key] === 'number' ? num : trimmed
       }
-      await adminApi.put('/settings', { settings: processed })
+      await authApi.put('/settings', { settings: processed })
       toast.success(t('admin.settingsSaved'))
       fetchSettings()
     } catch (err) {
@@ -850,7 +850,7 @@ function SettingsAdmin() {
   async function handleRefresh() {
     setRefreshing(true)
     try {
-      await adminApi.post('/settings/refresh')
+      await authApi.post('/settings/refresh')
       toast.success(t('admin.cacheRefreshed'))
       fetchSettings()
     } catch (err) {
@@ -940,7 +940,7 @@ function ActivityAdmin() {
       const params = { limit: 50, page }
       if (typeFilter) params.type = typeFilter
       if (tokenFilter) params.identity = tokenFilter
-      const res = await adminApi.get('/activity/admin', params)
+      const res = await authApi.get('/activity/admin', params)
       setActivities(res.data.data || [])
       setTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }
@@ -950,7 +950,7 @@ function ActivityAdmin() {
   async function fetchSummary() {
     setLoading(true)
     try {
-      const res = await adminApi.get('/activity/admin/summary', { limit: 50, page })
+      const res = await authApi.get('/activity/admin/summary', { limit: 50, page })
       setSummaries(res.data.data || [])
       setTotal(res.data.pagination?.total || 0)
     } catch { /* ignore */ }

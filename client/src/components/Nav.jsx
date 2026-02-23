@@ -35,6 +35,10 @@ export default function Nav() {
     { to: '/leaderboard', label: t('nav.leaderboard') },
   ]
 
+  if (user?.role === 'admin') {
+    links.push({ to: '/admin', label: t('nav.admin') })
+  }
+
   function isActive(to) {
     if (to === '/') return pathname === '/'
     return pathname.startsWith(to)
