@@ -10,4 +10,7 @@ router.post('/register', authLimiter, authController.register)
 // POST /api/v1/auth/login
 router.post('/login', authLimiter, authController.login)
 
+// POST /api/v1/auth/hub-login
+router.post('/hub-login', authLimiter, authController.hubLogin)
+
 module.exports = router

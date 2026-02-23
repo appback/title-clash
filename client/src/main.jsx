@@ -8,7 +8,7 @@ import Footer from './components/Footer'
 import App from './pages/App'
 import RoundsPage from './pages/RoundsPage'
 import LeaderboardPage from './pages/LeaderboardPage'
-import AdminPage from './pages/AdminPage'
+// import AdminPage from './pages/AdminPage'  // admin removed for now
 import LoginPage from './pages/LoginPage'
 import BattlePage from './pages/BattlePage'
 import TitleBattleStart from './pages/TitleBattleStart'
@@ -41,7 +41,7 @@ createRoot(document.getElementById('root')).render(
               <Route path="/vote/:problemId" element={<Navigate to="/rounds" replace />} />
 <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="/login" element={<LoginPage />} />
-              <Route path="/admin" element={<AdminPage />} />
+              {/* <Route path="/admin" element={<AdminPage />} /> */}
               <Route path="/battle" element={<BattlePage />} />
               <Route path="/battle/title/play" element={<TitleBattlePlay />} />
               <Route path="/battle/title/result" element={<TitleBattleResult />} />

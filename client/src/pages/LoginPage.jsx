@@ -1,23 +1,24 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api from '../api'
+import { setAuth, getUser } from '../api'
 import { useToast } from '../components/Toast'
 import { useLang } from '../i18n'
+import api from '../api'
 
 export default function LoginPage() {
   const { t } = useLang()
   const navigate = useNavigate()
   const toast = useToast()
-  const [mode, setMode] = useState('login') // 'login' | 'register'
+  const [mode, setMode] = useState('login')
   const [form, setForm] = useState({ email: '', password: '', name: '' })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Already logged in
-  if (localStorage.getItem('admin_token')) {
-    navigate('/admin', { replace: true })
-    return null
-  }
+  useEffect(() => {
+    if (getUser()) {
+      navigate('/', { replace: true })
+    }
+  }, [navigate])
 
   function update(field, value) {
     setForm(prev => ({ ...prev, [field]: value }))
@@ -39,14 +40,9 @@ export default function LoginPage() {
       } else {
         const res = await api.post('/auth/login', form)
         const { token, user } = res.data
-        localStorage.setItem('admin_token', token)
-        window.dispatchEvent(new Event('admin-auth-change'))
-        if (user.role === 'admin') {
-          navigate('/admin', { replace: true })
-        } else {
-          toast.success(t('login.loggedIn'))
-          navigate('/', { replace: true })
-        }
+        setAuth(token, user)
+        toast.success(t('login.loggedIn'))
+        navigate('/', { replace: true })
       }
     } catch (err) {
       setError(err.response?.data?.message || 'Something went wrong')

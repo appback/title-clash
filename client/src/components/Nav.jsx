@@ -1,39 +1,29 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
+import { getUser, clearAuth } from '../api'
 import ThemeToggle from './ThemeToggle'
 import LangToggle from './LangToggle'
 import { useLang } from '../i18n'
-
-function getUser() {
-  const raw = localStorage.getItem('tc_user')
-  return raw ? JSON.parse(raw) : null
-}
 
 export default function Nav() {
   const { t } = useLang()
   const { pathname } = useLocation()
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(!!localStorage.getItem('admin_token'))
   const [user, setUser] = useState(getUser)
 
   useEffect(() => {
-    function onAuthChange() {
-      setIsAdmin(!!localStorage.getItem('admin_token'))
-      setUser(getUser())
-    }
-    window.addEventListener('storage', onAuthChange)
-    window.addEventListener('admin-auth-change', onAuthChange)
+    function onChange() { setUser(getUser()) }
+    window.addEventListener('storage', onChange)
+    window.addEventListener('tc-auth-change', onChange)
     return () => {
-      window.removeEventListener('storage', onAuthChange)
-      window.removeEventListener('admin-auth-change', onAuthChange)
+      window.removeEventListener('storage', onChange)
+      window.removeEventListener('tc-auth-change', onChange)
     }
   }, [])
 
   function handleLogout() {
-    localStorage.removeItem('admin_token')
-    localStorage.removeItem('tc_user')
-    window.dispatchEvent(new Event('admin-auth-change'))
+    clearAuth()
     setMenuOpen(false)
     navigate('/')
   }
@@ -45,16 +35,10 @@ export default function Nav() {
     { to: '/leaderboard', label: t('nav.leaderboard') },
   ]
 
-  if (isAdmin) {
-    links.push({ to: '/admin', label: t('nav.admin') })
-  }
-
   function isActive(to) {
     if (to === '/') return pathname === '/'
     return pathname.startsWith(to)
   }
-
-  const isLoggedIn = isAdmin || !!user
 
   return (
     <nav className="nav">
@@ -81,20 +65,17 @@ export default function Nav() {
               {link.label}
             </Link>
           ))}
-          {isLoggedIn ? (
+          {user ? (
             <>
-              {user?.avatar_url ? (
+              {user.avatar_url ? (
                 <img src={user.avatar_url} alt="" className="nav-avatar"
                   style={{ width: 28, height: 28, borderRadius: '50%', verticalAlign: 'middle' }} />
               ) : (
-                <span className="nav-link" style={{ color: 'var(--primary)' }}>
-                  {user?.display_name || user?.email || 'User'}
+                <span style={{ width: 28, height: 28, borderRadius: '50%', background: 'var(--primary)', color: '#fff', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 600, verticalAlign: 'middle' }}>
+                  {(user.display_name || user.name || user.email || '?')[0].toUpperCase()}
                 </span>
               )}
-              <button className="nav-link" onClick={handleLogout}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: 0 }}>
-                Logout
-              </button>
+              <button className="btn btn-ghost btn-sm" onClick={handleLogout}>Logout</button>
             </>
           ) : (
             <Link

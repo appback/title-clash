@@ -116,4 +116,109 @@ async function login(req, res, next) {
   }
 }
 
-module.exports = { register, login }
+/**
+ * POST /api/v1/auth/hub-login
+ * Exchange Hub JWT for TC-local JWT (same pattern as CC hubLogin)
+ */
+async function hubLogin(req, res, next) {
+  try {
+    const { token: hubToken } = req.body
+    if (!hubToken) {
+      throw new ValidationError('token is required')
+    }
+
+    // Verify token with Hub
+    const hubUrl = process.env.HUB_API_URL || 'https://appback.app/api/v1'
+    const https = require('https')
+    const hubResult = await new Promise((resolve, reject) => {
+      const postData = JSON.stringify({ token: hubToken })
+      const urlObj = new URL(`${hubUrl}/auth/verify`)
+      const req = https.request({
+        hostname: urlObj.hostname,
+        port: urlObj.port || 443,
+        path: urlObj.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Content-Length': Buffer.byteLength(postData)
+        }
+      }, (res) => {
+        let data = ''
+        res.on('data', chunk => { data += chunk })
+        res.on('end', () => {
+          try { resolve(JSON.parse(data)) } catch { reject(new Error('Invalid Hub response')) }
+        })
+      })
+      req.on('error', reject)
+      req.write(postData)
+      req.end()
+    })
+
+    if (!hubResult.valid) {
+      throw new UnauthorizedError('Invalid Hub token')
+    }
+
+    // Find or create TC user by hub_user_id
+    const hubUserId = hubResult.userId
+    const hubDisplayName = hubResult.displayName || (hubResult.email ? hubResult.email.split('@')[0] : 'User')
+    let user
+
+    const existing = await db.query('SELECT * FROM users WHERE hub_user_id = $1', [hubUserId])
+    if (existing.rows.length > 0) {
+      user = existing.rows[0]
+      // Sync display_name + refresh hub_token
+      const newName = (hubResult.displayName && hubResult.displayName !== user.display_name)
+        ? hubResult.displayName : user.display_name || hubDisplayName
+      await db.query(
+        'UPDATE users SET display_name = $1, hub_token = $2, avatar_url = COALESCE($3, avatar_url) WHERE id = $4',
+        [newName, hubToken, hubResult.avatarUrl || null, user.id]
+      )
+      user.display_name = newName
+      if (hubResult.avatarUrl) user.avatar_url = hubResult.avatarUrl
+    } else {
+      // Try matching by email
+      if (hubResult.email) {
+        const emailMatch = await db.query('SELECT * FROM users WHERE email = $1', [hubResult.email])
+        if (emailMatch.rows.length > 0) {
+          user = emailMatch.rows[0]
+          await db.query(
+            'UPDATE users SET hub_user_id = $1, display_name = COALESCE(display_name, $2), hub_token = $3, avatar_url = COALESCE($4, avatar_url) WHERE id = $5',
+            [hubUserId, hubDisplayName, hubToken, hubResult.avatarUrl || null, user.id]
+          )
+          user.hub_user_id = hubUserId
+          if (!user.display_name) user.display_name = hubDisplayName
+        }
+      }
+
+      if (!user) {
+        // Create new user (no password)
+        const result = await db.query(
+          `INSERT INTO users (email, name, display_name, role, hub_user_id, hub_token, avatar_url)
+           VALUES ($1, $2, $3, 'voter', $4, $5, $6)
+           RETURNING *`,
+          [hubResult.email, hubDisplayName, hubDisplayName, hubUserId, hubToken, hubResult.avatarUrl || null]
+        )
+        user = result.rows[0]
+      }
+    }
+
+    // Issue TC-local JWT
+    const token = generateJWT({ userId: user.id, role: user.role })
+
+    res.json({
+      token,
+      user: {
+        id: user.id,
+        name: user.name || user.display_name,
+        display_name: user.display_name || user.name,
+        email: user.email,
+        role: user.role,
+        avatar_url: user.avatar_url || hubResult.avatarUrl || null
+      }
+    })
+  } catch (err) {
+    next(err)
+  }
+}
+
+module.exports = { register, login, hubLogin }

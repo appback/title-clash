@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
+import { setAuth } from '../api'
 import Loading from '../components/Loading'
 
 export default function AuthCallbackPage() {
@@ -7,29 +8,26 @@ export default function AuthCallbackPage() {
   const [searchParams] = useSearchParams()
 
   useEffect(() => {
-    const token = searchParams.get('token')
-    if (!token) {
+    const hubToken = searchParams.get('token')
+    if (!hubToken) {
       navigate('/login', { replace: true })
       return
     }
 
-    localStorage.setItem('admin_token', token)
-
-    // Fetch user info from Hub
-    fetch('https://appback.app/api/v1/auth/me', {
-      headers: { Authorization: 'Bearer ' + token }
+    fetch('/api/v1/auth/hub-login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: hubToken })
     })
       .then(r => r.json())
       .then(data => {
-        if (data.user) {
-          localStorage.setItem('tc_user', JSON.stringify(data.user))
+        if (data.token && data.user) {
+          setAuth(data.token, data.user)
         }
-        window.dispatchEvent(new Event('admin-auth-change'))
         navigate('/', { replace: true })
       })
       .catch(() => {
-        window.dispatchEvent(new Event('admin-auth-change'))
-        navigate('/', { replace: true })
+        navigate('/login', { replace: true })
       })
   }, [searchParams, navigate])
 
